@@ -1,0 +1,1270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GCP Network Vision</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<style>
+/* Google Cloud / Material look: light surfaces, Roboto, Google's palette, tonal chips, blue primary.
+   Colour still = lens: orange Internet, blue Google backbone, green your VPC, purple hybrid, pink firewall, yellow IAM.
+   Every colour is a token so the Google-dark theme is a single override. Nothing moves unless you send a packet. */
+:root{
+  --page:#f8f9fa; --surface:#ffffff; --surface-2:#f1f3f4; --surface-3:#e8eaed; --canvas:#ffffff;
+  --line:#dadce0; --line-2:#e8eaed; --text:#202124; --muted:#5f6368; --dim:#80868b; --faint-text:#eef0f2;
+  --primary:#1a73e8; --primary-bg:#e8f0fe; --primary-ink:#174ea6; --on-primary:#ffffff;
+  --gbb:#1a73e8; --gbb-bg:#e8f0fe; --gbb-bg2:#d2e3fc; --gbb-ink:#174ea6; --gbb-line:#8ab4f8;
+  --vpc:#1e8e3e; --vpc-bg:#e6f4ea; --vpc-bg2:#ceead6; --vpc-ink:#0d652d;
+  --inet:#e8710a; --inet-bg:#feefe3; --inet-ink:#b06000;
+  --hyb:#9334e6; --hyb-bg:#f3e8fd; --hyb-ink:#681da8;
+  --fw:#d01884; --fw-bg:#fde7f3; --fw-ink:#9c166b;
+  --iam:#f9ab00; --iam-bg:#fef7e0; --iam-ink:#8a5300;
+  --addr:#007b83; --addr-bg:#e4f7fb;
+  --neutral:#80868b; --neutral-bg:#f1f3f4; --neutral-ink:#5f6368; --off-bg:#f1f3f4;
+  --ok:#1e8e3e; --ok-bg:#e6f4ea; --ok-line:#81c995; --bad:#d93025; --bad-bg:#fce8e6; --bad-line:#f28b82; --bad-ink:#a50e0e;
+  --accent:#f9ab00; --accent-ink:#8a5300; --hit-bg:#fef7e0;
+  --route:#1a73e8; --pkt-ring:#ffffff;
+  --shadow:0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15);
+  --node-shadow:drop-shadow(0 1px 1.5px rgba(60,64,67,.28));
+  --sans:"Google Sans","Google Sans Text",Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"Roboto Mono","Google Sans Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --gold:var(--accent);
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --page:#202124; --surface:#292a2d; --surface-2:#303134; --surface-3:#3c4043; --canvas:#232427;
+  --line:#3c4043; --line-2:#35363a; --text:#e8eaed; --muted:#9aa0a6; --dim:#80868b; --faint-text:#2c2d31;
+  --primary:#8ab4f8; --primary-bg:#283142; --primary-ink:#aecbfa; --on-primary:#202124;
+  --gbb:#8ab4f8; --gbb-bg:#1f2b3e; --gbb-bg2:#27395a; --gbb-ink:#aecbfa; --gbb-line:#4a6da8;
+  --vpc:#81c995; --vpc-bg:#1d3325; --vpc-bg2:#24452f; --vpc-ink:#a8dab5;
+  --inet:#fcad70; --inet-bg:#3a2718; --inet-ink:#fdc69c;
+  --hyb:#c58af9; --hyb-bg:#2f2440; --hyb-ink:#d7aefb;
+  --fw:#ff8bcb; --fw-bg:#3b1f30; --fw-ink:#ffadd8;
+  --iam:#fdd663; --iam-bg:#3a3219; --iam-ink:#fde293;
+  --addr:#78d9ec; --addr-bg:#1b3438;
+  --neutral:#9aa0a6; --neutral-bg:#303134; --neutral-ink:#bdc1c6; --off-bg:#303134;
+  --ok:#81c995; --ok-bg:#1d3325; --ok-line:#2f6b41; --bad:#f28b82; --bad-bg:#3a1f1e; --bad-line:#8c3b35; --bad-ink:#f6aea9;
+  --accent:#fdd663; --accent-ink:#fde293; --hit-bg:#3a3219;
+  --route:#8ab4f8; --pkt-ring:#202124;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 1px 3px 1px rgba(0,0,0,.3);
+  --node-shadow:none;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --page:#202124; --surface:#292a2d; --surface-2:#303134; --surface-3:#3c4043; --canvas:#232427;
+  --line:#3c4043; --line-2:#35363a; --text:#e8eaed; --muted:#9aa0a6; --dim:#80868b; --faint-text:#2c2d31;
+  --primary:#8ab4f8; --primary-bg:#283142; --primary-ink:#aecbfa; --on-primary:#202124;
+  --gbb:#8ab4f8; --gbb-bg:#1f2b3e; --gbb-bg2:#27395a; --gbb-ink:#aecbfa; --gbb-line:#4a6da8;
+  --vpc:#81c995; --vpc-bg:#1d3325; --vpc-bg2:#24452f; --vpc-ink:#a8dab5;
+  --inet:#fcad70; --inet-bg:#3a2718; --inet-ink:#fdc69c;
+  --hyb:#c58af9; --hyb-bg:#2f2440; --hyb-ink:#d7aefb;
+  --fw:#ff8bcb; --fw-bg:#3b1f30; --fw-ink:#ffadd8;
+  --iam:#fdd663; --iam-bg:#3a3219; --iam-ink:#fde293;
+  --addr:#78d9ec; --addr-bg:#1b3438;
+  --neutral:#9aa0a6; --neutral-bg:#303134; --neutral-ink:#bdc1c6; --off-bg:#303134;
+  --ok:#81c995; --ok-bg:#1d3325; --ok-line:#2f6b41; --bad:#f28b82; --bad-bg:#3a1f1e; --bad-line:#8c3b35; --bad-ink:#f6aea9;
+  --accent:#fdd663; --accent-ink:#fde293; --hit-bg:#3a3219;
+  --route:#8ab4f8; --pkt-ring:#202124;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 1px 3px 1px rgba(0,0,0,.3);
+  --node-shadow:none;
+  color-scheme:dark;
+}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--page);color:var(--text)}
+body{font:14px/1.5 var(--sans);padding:0 0 40px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1500px;margin:0 auto;display:grid;gap:16px;padding:16px 16px 0}
+h1{font-size:20px;font-weight:500;margin:0;letter-spacing:0}
+h2{font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+/* top app bar */
+.appbar{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line);}
+.appbar .bar{max-width:1500px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:12px}
+.brand svg{flex:none}
+.brand p{margin:0;color:var(--muted);font-size:12.5px;max-width:78ch}
+.lens{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.lens span{font-size:12px;font-weight:500;padding:4px 10px 4px 8px;border:1px solid var(--line);background:var(--surface);border-radius:16px;display:inline-flex;gap:6px;align-items:center;cursor:pointer;color:var(--text)}
+.lens span:hover{background:var(--surface-2)}
+.lens i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.iconbtn{font:500 12.5px var(--sans);color:var(--primary);background:transparent;border:1px solid var(--line);border-radius:16px;padding:4px 12px;cursor:pointer}
+.iconbtn:hover{background:var(--primary-bg)}
+/* tabs (Material) */
+.tabs{display:flex;flex-wrap:wrap;gap:0;background:var(--surface);border-radius:8px;padding:0 8px;box-shadow:var(--shadow)}
+.tab{font:500 13.5px var(--sans);color:var(--muted);background:transparent;border:none;padding:13px 16px 11px;cursor:pointer;border-bottom:3px solid transparent;border-radius:0}
+.tab b{font-family:var(--mono);font-weight:500;color:var(--dim);margin-right:7px;font-size:12px}
+.tab:hover{color:var(--text);background:var(--surface-2)}
+.tab[aria-selected=true]{color:var(--primary);border-bottom-color:var(--primary)}
+.tab[aria-selected=true] b{color:var(--primary)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+@media (max-width:1100px){.grid{grid-template-columns:minmax(0,1fr)}}
+.stagebox{background:var(--surface);border-radius:8px;padding:12px;min-width:0;box-shadow:var(--shadow)}
+.vhead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 14px;align-items:baseline;padding:4px 4px 12px}
+.vhead h3{margin:0;font-size:18px;font-weight:500}
+.vhead p{margin:0;color:var(--muted);font-size:13px;max-width:95ch}
+svg#stage{width:100%;height:auto;display:block;background:var(--canvas);border-radius:8px;border:1px solid var(--line);user-select:none;
+  background-image:radial-gradient(var(--line-2) 1px,transparent 1px);background-size:20px 20px}
+.side{display:grid;gap:16px;min-width:0}
+.card{background:var(--surface);border-radius:8px;padding:16px;min-width:0;box-shadow:var(--shadow)}
+.ctl{display:grid;gap:10px}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.lab{font-size:12.5px;color:var(--muted);min-width:96px}
+/* segmented button (Material 3) */
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--dim);border-radius:18px;overflow:hidden}
+.seg button{font:500 12.5px var(--sans);background:transparent;color:var(--text);border:none;border-right:1px solid var(--dim);padding:6px 12px;cursor:pointer}
+.seg button:last-child{border-right:none}
+.seg button:hover{background:var(--surface-2)}
+.seg button[aria-pressed=true]{background:var(--primary-bg);color:var(--primary-ink)}
+.seg button[aria-pressed=true]::before{content:"✓ ";font-weight:700}
+select,input[type=text]{font:13px var(--mono);background:var(--surface);color:var(--text);border:1px solid var(--dim);border-radius:4px;padding:7px 9px}
+select:hover,input[type=text]:hover{border-color:var(--text)}
+input[type=range]{accent-color:var(--primary);width:150px}
+label.tg{display:flex;gap:10px;align-items:flex-start;font-size:13px;cursor:pointer;line-height:1.35}
+label.tg input{accent-color:var(--primary);margin-top:2px;width:16px;height:16px;flex:none}
+label.tg small{color:var(--muted);display:block;font-size:11.5px}
+/* buttons */
+.btn{font:500 13px var(--sans);color:var(--text);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer;text-align:left}
+.btn:hover{background:var(--surface-2)}
+.btn[aria-pressed=true]{border-color:var(--primary);background:var(--primary-bg);color:var(--primary-ink)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:var(--on-primary);border-radius:18px;padding:8px 20px}
+.btn.primary:hover{box-shadow:var(--shadow);filter:brightness(1.05)}
+.play .btn:not(.primary){border-radius:18px;color:var(--primary);padding:8px 16px}
+.btn[disabled]{opacity:.45;cursor:default}
+.scens{display:grid;gap:6px}
+.scens .btn{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.scens .btn em{font-style:normal;color:var(--muted);font-size:11.5px;font-weight:400;white-space:nowrap}
+.scens .btn[aria-pressed=true] em{color:var(--primary-ink)}
+.play{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+/* trace list */
+ol.trace{margin:0;padding:0;list-style:none;display:grid;gap:6px;max-height:360px;overflow:auto}
+ol.trace li{display:grid;grid-template-columns:22px 1fr;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:13px;cursor:pointer}
+ol.trace li:hover{background:var(--surface-2)}
+ol.trace li .n{font:12px var(--mono);color:var(--dim);text-align:right;padding-top:1px}
+ol.trace li b{font-weight:500}
+ol.trace li p{margin:3px 0 0;color:var(--muted);font-size:12.5px}
+ol.trace li.cur{border-color:var(--primary);background:var(--primary-bg)}
+ol.trace li.past{opacity:.8}
+ol.trace li.fail{border-color:var(--bad);background:var(--bad-bg)}
+.chip{font:500 10.5px var(--sans);padding:1px 8px;border-radius:10px;margin-right:6px;white-space:nowrap;display:inline-block;vertical-align:1px}
+.c-inet{color:var(--inet-ink)}.c-gbb{color:var(--gbb-ink)}.c-vpc{color:var(--vpc-ink)}.c-hyb{color:var(--hyb-ink)}.c-fw{color:var(--fw-ink)}.c-iam{color:var(--iam-ink)}.c-addr{color:var(--addr)}
+.chip.c-inet{background:var(--inet-bg)}.chip.c-gbb{background:var(--gbb-bg)}.chip.c-vpc{background:var(--vpc-bg)}.chip.c-hyb{background:var(--hyb-bg)}.chip.c-fw{background:var(--fw-bg)}.chip.c-iam{background:var(--iam-bg)}.chip.c-addr{background:var(--addr-bg)}
+.verdict{margin-top:10px;padding:10px 12px;border-radius:8px;font-size:13px}
+.verdict.ok{background:var(--ok-bg);color:var(--vpc-ink)}
+.verdict.bad{background:var(--bad-bg);color:var(--bad-ink)}
+/* inspector */
+.insp h4{margin:0 0 4px;font-size:17px;font-weight:500}
+.insp .kind{font:500 11px var(--sans);margin-bottom:8px;display:inline-block;padding:1px 8px;border-radius:10px}
+.insp .kind.c-inet{background:var(--inet-bg)}.insp .kind.c-gbb{background:var(--gbb-bg)}.insp .kind.c-vpc{background:var(--vpc-bg)}.insp .kind.c-hyb{background:var(--hyb-bg)}.insp .kind.c-fw{background:var(--fw-bg)}.insp .kind.c-iam{background:var(--iam-bg)}.insp .kind.c-addr{background:var(--addr-bg)}
+.insp p{margin:6px 0;font-size:13.5px}
+.insp ul{margin:6px 0;padding-left:18px;font-size:13px;color:var(--text)}
+.insp li{margin:3px 0}
+.insp .box{padding:8px 12px;margin:10px 0;background:var(--surface-2);border-radius:8px;font-size:13px;border-left:4px solid var(--line)}
+.insp .box.an{background:var(--iam-bg);border-color:var(--iam)}
+.insp .box.fp{background:var(--primary-bg);border-color:var(--primary)}
+.insp .box.cx{background:var(--bad-bg);border-color:var(--bad)}
+.insp .box b{display:block;font-size:10.5px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.insp a,.srcs a,details.notes li a,.card a{color:var(--primary);text-decoration:none}
+.insp a:hover,.srcs a:hover,.card a:hover{text-decoration:underline}
+.muted{color:var(--muted)}.dim{color:var(--dim)}
+table.cmp{border-collapse:collapse;width:100%;font-size:12px}
+table.cmp th,table.cmp td{border-bottom:1px solid var(--line-2);padding:6px 6px 6px 0;text-align:left;vertical-align:top}
+table.cmp th{font-size:10.5px;font-weight:500;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+details summary{cursor:pointer}
+details.notes summary{font-size:13px;color:var(--text);font-weight:500}
+details.notes ul{margin:10px 0 0;padding-left:18px;font-size:13px}
+details.notes li{margin:7px 0}
+.srcs{margin:14px 4px 2px;padding-top:14px;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px 20px;font-size:12.5px}
+.srcs h5{margin:0 0 6px;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.srcs ul{margin:0;padding-left:16px}.srcs li{margin:3px 0}
+.srcs .note{grid-column:1/-1;color:var(--dim);font-size:12px}
+.prompt{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}
+.prompt pre{margin:0;white-space:pre-wrap;font:12.5px/1.55 var(--mono);color:var(--text);background:var(--surface-2);border-radius:8px;padding:12px;max-height:180px;overflow:auto}
+.tip{position:fixed;pointer-events:none;z-index:9;max-width:300px;background:#3c4043;color:#fff;border-radius:4px;padding:7px 10px;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.3);display:none}
+.tip b{display:block;font-size:12.5px;font-weight:500}
+.tip span{color:#e8eaed}
+/* ---------- SVG ---------- */
+svg text{font-family:var(--sans);fill:var(--text)}
+svg .lbl{font-size:11px}
+svg .b{font-weight:500}
+svg .sm{font-size:9.5px;fill:var(--muted)}
+svg .xs{font-size:8.5px;fill:var(--muted)}
+svg .mono{font-family:var(--mono)}
+svg .big{font-size:26px;font-weight:700;fill:var(--faint-text);letter-spacing:.12em}
+svg .hd{font-size:10.5px;font-weight:500;letter-spacing:.07em;text-transform:uppercase}
+svg .nd{cursor:pointer}
+svg .nd:hover>rect,svg .nd:hover>circle,svg .nd:hover>polygon,svg .nd:hover>ellipse,svg .nd:hover>path{stroke-width:2.2}
+svg .sel>rect,svg .sel>circle,svg .sel>polygon,svg .sel>ellipse,svg .sel>path{stroke:var(--accent)!important;stroke-width:3!important}
+svg .ii{cursor:pointer}
+svg .ii circle{fill:var(--surface);stroke:var(--primary);stroke-width:1.2}
+svg .ii text{font:700 9px var(--mono);fill:var(--primary);text-anchor:middle}
+svg .ii:hover circle{fill:var(--primary)}
+svg .ii:hover text{fill:var(--on-primary)}
+svg .reg rect{fill:var(--surface);stroke:var(--gbb);stroke-width:1.3;filter:var(--node-shadow)}
+svg .zone circle{fill:var(--gbb-bg);stroke:var(--gbb);stroke-width:1}
+svg .zone.down circle{fill:var(--bad-bg);stroke:var(--bad)}
+svg .zt{font:500 9px var(--mono);text-anchor:middle;fill:var(--gbb-ink)}
+svg .pop polygon{fill:var(--surface);stroke:var(--gbb);stroke-width:1.5}
+svg .pop.on polygon{fill:var(--gbb-bg2)}
+svg .terr{stroke:var(--gbb-line);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+svg .sub{stroke:var(--gbb-line);stroke-width:2.2;fill:none;stroke-dasharray:7 5;stroke-linecap:round}
+svg .cbl{font-size:9px;fill:var(--gbb-ink);font-style:italic}
+svg .inetc{fill:var(--inet-bg);stroke:var(--inet);stroke-width:1.3}
+svg .inetl{stroke:var(--inet);stroke-width:1.8;fill:none;opacity:.75}
+svg .dev rect{fill:var(--inet-bg);stroke:var(--inet);stroke-width:1.3}
+svg .gbox rect,svg rect.gbox{fill:var(--gbb-bg);stroke:var(--gbb);stroke-width:1.2}
+svg .vbox rect,svg rect.vbox{fill:var(--vpc-bg);stroke:var(--vpc);stroke-width:1.2}
+svg .hbox rect,svg rect.hbox{fill:var(--hyb-bg);stroke:var(--hyb);stroke-width:1.2}
+svg .fbox rect,svg rect.fbox{fill:var(--fw-bg);stroke:var(--fw);stroke-width:1.2}
+svg .ibox rect,svg rect.ibox{fill:var(--iam-bg);stroke:var(--iam);stroke-width:1.2}
+svg .ebox rect,svg rect.ebox{fill:var(--inet-bg);stroke:var(--inet);stroke-width:1.2}
+svg .nd.gbox>rect,svg .nd.vbox>rect,svg .nd.hbox>rect,svg .nd.fbox>rect,svg .nd.ibox>rect,svg .nd.ebox>rect,svg .nd.dev>rect{filter:var(--node-shadow)}
+svg rect.frame{stroke-width:1.3}
+svg .vm rect{fill:var(--surface);stroke:var(--vpc);stroke-width:1.6;filter:var(--node-shadow)}
+svg .vm.off rect{fill:var(--off-bg);stroke:var(--neutral)}
+svg .hl{stroke:var(--hyb);stroke-width:2;fill:none;opacity:.7}
+svg .bgp{stroke:var(--hyb);stroke-width:1.3;fill:none;stroke-dasharray:3 3;opacity:.85}
+svg .vl{stroke:var(--vpc);stroke-width:1.6;fill:none;opacity:.6}
+svg .gl{stroke:var(--gbb-line);stroke-width:2;fill:none}
+svg .dl{stroke:var(--dim);stroke-width:1.2;fill:none;stroke-dasharray:4 4;opacity:.8}
+svg .down-l{stroke:var(--bad)!important;opacity:.9!important;stroke-dasharray:2 4!important}
+svg .callout line{stroke:var(--accent);stroke-width:1.2}
+svg .callout circle{fill:var(--accent)}
+svg .callout text{font-size:10.5px;font-weight:500;fill:var(--accent-ink)}
+svg .route{fill:none;stroke:var(--route);stroke-width:5;opacity:.85;stroke-linecap:round;stroke-linejoin:round}
+svg .route.bad{stroke:var(--bad)}
+svg .pkt{fill:var(--route);stroke:var(--pkt-ring);stroke-width:2.5;filter:drop-shadow(0 0 4px var(--route))}
+svg .xmark{stroke:var(--bad);stroke-width:4;stroke-linecap:round}
+svg .rt rect.bg{fill:var(--surface);stroke:var(--vpc);stroke-width:1.2;filter:var(--node-shadow)}
+svg .rt text{font-family:var(--mono);font-size:10px}
+svg .rt .hit rect{fill:var(--hit-bg);stroke:var(--accent)}
+svg .rule rect{fill:var(--surface);stroke:var(--line)}
+svg .rule text{font-family:var(--mono);font-size:10px}
+svg .rule.offr text{fill:var(--dim);text-decoration:line-through}
+svg .rule.hit rect{stroke:var(--accent);stroke-width:2}
+svg .rule.hit.allow rect{fill:var(--ok-bg)}
+svg .rule.hit.deny rect{fill:var(--bad-bg)}
+svg .rule.hit.goto rect{fill:var(--iam-bg)}
+svg .bit rect{stroke:var(--canvas);stroke-width:1}
+svg .legend text{font-size:9.5px;fill:var(--muted)}
+</style>
+</head>
+<body>
+<header class="appbar"><div class="bar">
+  <div class="brand">
+    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><line x1="9" y1="9" x2="25" y2="9" stroke="#dadce0" stroke-width="2"/><line x1="9" y1="9" x2="9" y2="25" stroke="#dadce0" stroke-width="2"/><line x1="25" y1="9" x2="25" y2="25" stroke="#dadce0" stroke-width="2"/><line x1="9" y1="25" x2="25" y2="25" stroke="#dadce0" stroke-width="2"/><circle cx="9" cy="9" r="5" fill="#4285f4"/><circle cx="25" cy="9" r="5" fill="#ea4335"/><circle cx="25" cy="25" r="5" fill="#fbbc04"/><circle cx="9" cy="25" r="5" fill="#34a853"/></svg>
+    <div><h1>GCP Network Vision</h1><p>From Google's physical backbone up to the VPC you configure. Click anything to inspect it. Pick a scenario and send a packet. Nothing moves until you do.</p></div>
+  </div>
+  <div class="lens" id="lens"></div>
+  <button class="iconbtn" id="bTheme" type="button" aria-label="Toggle light or dark theme">◐ Theme</button>
+</div></header>
+<div class="wrap">
+  <nav class="tabs" id="tabs" role="tablist"></nav>
+  <div class="grid">
+    <section class="stagebox">
+      <div class="vhead"><h3 id="vtitle"></h3><p id="vblurb"></p></div>
+      <svg id="stage" viewBox="0 0 1200 680" role="img" aria-label="Network diagram"></svg>
+      <div class="srcs" id="srcs"></div>
+    </section>
+    <aside class="side">
+      <div class="card" id="scencard"><h2>Scenarios · send a packet</h2><div class="scens" id="scens"></div>
+        <div class="play"><button class="btn primary" id="bSend">▶ Send</button><button class="btn" id="bStep">Step ›</button><button class="btn" id="bReset">Reset</button></div>
+      </div>
+      <div class="card"><h2>Controls</h2><div class="ctl" id="ctl"></div></div>
+      <div class="card"><h2>Trace</h2><ol class="trace" id="trace"></ol><div id="verdict"></div></div>
+      <div class="card insp" id="insp"></div>
+      <div class="card"><details class="notes" id="notes"><summary></summary><ul></ul></details></div>
+    </aside>
+  </div>
+  <section class="card">
+    <h2>Ask Claude about what you're looking at</h2>
+    <div class="prompt"><pre id="prompt"></pre><button class="btn" id="bCopy">Copy</button></div>
+  </section>
+</div>
+<div class="tip" id="tip"></div>
+<script>
+/* ================= KNOWLEDGE BASE =================
+   t: title · k: lens (inet|gbb|vpc|hyb|fw|iam|addr) · w: what it is · f: facts
+   a: analogy (from your "Private Autobahn / postal" notes) · p: first principle (Tanenbaum, Computer Networks 5e)
+   c: correction to your compiled notes · u: Google Cloud docs */
+const D='https://cloud.google.com/';
+const INFO={
+/* ---------- lenses ---------- */
+'lens-inet':{t:'Network 1 · The public Internet',k:'inet',w:'Thousands of independent networks (autonomous systems, ASes) run by ISPs and carriers. They are stitched together with BGP. No one is in charge end to end, so latency and loss are best-effort.',f:['Your laptop reaches Google through your ISP (the "last mile").','Each AS picks routes by its own policy. Usually it hands traffic to the next AS as early as possible ("hot-potato").'],a:'The standard public postal service and public highways.',p:'§1.2.5 Internetworks; §5.6.7 BGP, the exterior gateway routing protocol.',u:D+'network-tiers/docs/overview'},
+'lens-gbb':{t:'Network 2 · Google\'s private backbone',k:'gbb',w:'Google\'s own global network: data centers, subsea and terrestrial fiber, and 200+ edge PoPs. It is a separate network, not part of the Internet. It meets the Internet only at its edge.',f:['B4 is Google\'s SDN WAN between data centers. B2 is the public-facing backbone that carries user traffic.','Jupiter is the switching fabric inside each data center. Espresso is the SDN peering edge at the PoPs.','Google announces its prefixes from AS15169 at every PoP.'],a:'The Autobahn: Google\'s private high-speed roads between its own post offices.',p:'§1.2.4 Wide Area Networks; §5.2.6 Hierarchical routing; §2.2.5 Fiber optics.',u:D+'vpc/docs/edge-locations'},
+'lens-vpc':{t:'Network 3 · Your VPC (virtual)',k:'vpc',w:'A software-defined network that exists only as configuration on top of the backbone. Google\'s virtualisation stack (Andromeda) puts it into effect on every host that runs one of your VMs.',f:['It is global. Subnets are regional. VMs live in zones.','Packets between your VMs are encapsulated and carried across the physical fabric and backbone.','Two VPCs are isolated by default, even if they use the same IP ranges.'],a:'Your own private Autobahn network painted onto Google\'s roads. Only your offices are on it.',p:'§5.5.3 Tunneling (encapsulation is how an overlay rides an underlay); §4.8.5 Virtual LANs (the same idea at layer 2).',c:'Your notes call a VPC a "global subnet of Google\'s backbone". It is an overlay, not a subnet. It has its own private address space and route table, and Andromeda encapsulates its packets over the physical network.',u:D+'vpc/docs/vpc'},
+'lens-hyb':{t:'Hybrid connectivity',k:'hyb',w:'The ways your own networks (on-premises, other clouds) join a VPC: Interconnect (physical), VPN (encrypted over the Internet), or peering with Google\'s edge (public services only).',u:D+'network-connectivity/docs/how-to/choose-product'},
+'lens-fw':{t:'Firewalls',k:'fw',w:'Distributed, stateful packet filters. They are enforced at every VM\'s virtual NIC by the host, not by a box in the path.',u:D+'firewall/docs/about-firewalls'},
+'lens-iam':{t:'IAM & projects',k:'iam',w:'The resource hierarchy (organization → folders → projects) decides who may administer or use network resources. Projects are an ownership and billing boundary, not a network boundary.',u:D+'resource-manager/docs/cloud-platform-resource-hierarchy'},
+
+/* ---------- backbone ---------- */
+region:{t:'Region',k:'gbb',w:'An independent geographic area, such as us-central1 (Iowa), made up of zones. It is the scope for regional resources: subnets, regional load balancers, Cloud NAT, Cloud Router, VLAN attachments.',f:['43 regions and 130 zones (Google, Oct 2026).','Most regions have 3 zones. Names follow geo-areaN, e.g. africa-south1 (Johannesburg).','Choose a region for latency to users, data residency, and price.'],a:'A city where Google has a cluster of post offices.',u:D+'compute/docs/regions-zones'},
+zone:{t:'Zone',k:'gbb',w:'A deployment area inside a region and a single failure domain. A zonal resource (VM, zonal disk) lives in exactly one zone. A zone is not a network boundary: one subnet spans every zone in its region.',f:['Named region + letter: us-central1-a. Letters are not always a, b, c (europe-west1 uses b, c, d).','Spread replicas across ≥2 zones so one zone failing does not take you down.','A zone can map to one or more physical data-center buildings. Google does not publish the mapping.','Zonal resources (VMs, zonal disks) are not copied to other zones automatically. See the replication table in the side panel.'],a:'One post office building in that city. If it burns down, the others keep working.',c:'Your "Physical lens" table maps Zone → "—" in the virtual lens. That is right: a zone has no network object of its own. A subnet covers all of a region\'s zones.',u:D+'compute/docs/regions-zones'},
+replication:{t:'Is data replicated across zones automatically?',k:'gbb',w:'Not as a rule. It depends on the resource\'s scope. Anything you place in a zone (a VM, a zonal disk, Local SSD) lives only in that zone. Regional and multi-regional managed services (Cloud Storage, Spanner, BigQuery, Cloud Run) keep copies across zones, or regions, for you. Some resources have an opt-in regional variant (regional Persistent Disk, Cloud SQL HA, regional instance groups and GKE clusters).',f:['Zonal Persistent Disk: one zone only. Regional PD and Hyperdisk Balanced HA replicate synchronously to 2 zones.','Cloud Storage: a regional bucket is redundant across at least 2 zones. Dual-region and multi-region buckets span regions.','For disaster recovery, Google recommends replicating zonal or regional data to another region, or snapshotting it to multi-regional storage.'],a:'A zone is one post office building. Parcels stored in it are not copied to the building next door unless you rent a "regional" locker, or use a service that does it for you.',u:'https://docs.cloud.google.com/compute/docs/regions-zones/global-regional-zonal-resources'},
+pop:{t:'Edge PoP (network edge location)',k:'gbb',w:'A Point of Presence where Google\'s network meets the Internet. Here Google peers with ISPs, either at Internet exchanges (IXPs) or over private network interconnects (PNIs). Users\' packets enter Google\'s network here.',f:['200+ edge locations worldwide.','GFEs and Cloud CDN caches run at these PoPs.','Every PoP announces Google\'s anycast prefixes, so BGP steers users to a nearby PoP.'],a:'The on-ramp where public roads join the Autobahn.',p:'§5.6.7 BGP: peering and transit between ASes; §5.2.9 Anycast routing.',u:D+'vpc/docs/edge-locations'},
+gfe:{t:'GFE · Google Front End',k:'gbb',w:'Google\'s globally distributed reverse proxy, running at the edge. For a global external Application Load Balancer, the GFE terminates the client\'s TCP and TLS close to the user, applies Cloud Armor, evaluates the URL map, and opens a separate connection over the backbone to the best healthy backend.',f:['One anycast VIP is reachable from every PoP (Premium tier only).','Backends see connections from 35.191.0.0/16 and 130.211.0.0/22, plus an X-Forwarded-For header.','Terminating TCP near the user cuts the cost of handshake round trips.'],a:'The counter clerk at the nearest post office. They take your parcel, check it, and send it on the express lane.',p:'§6.5.5 TCP connection establishment (why a nearby termination point helps); §5.2.9 Anycast.',u:D+'load-balancing/docs/https'},
+cdn:{t:'Cloud CDN cache',k:'gbb',w:'An HTTP cache inside the GFE layer at the edge PoPs. On a hit, the response comes from the PoP and the request never crosses the backbone to your region.',f:['Enabled per backend service or bucket behind a global external Application Load Balancer.','Requires Premium tier.','Cache keys, TTLs and signed URLs are configurable.'],a:'A copy of popular parcels kept at the local post office.',p:'§7.5.3 Content Delivery Networks.',u:D+'cdn/docs/overview'},
+ggc:{t:'Google Global Cache (GGC) / Media CDN edge',k:'inet',w:'Google cache servers installed inside ISPs\' own networks, deeper than the PoPs. They serve Google\'s content (YouTube, Play), and Media CDN uses the same infrastructure for customers\' streaming.',f:['Traffic served from GGC never enters Google\'s backbone.','This is a different tier from Cloud CDN, which lives at the PoPs.'],a:'A Google parcel locker inside your local post office.',p:'§7.5.3 CDNs: placing replicas inside ISPs.',u:D+'media-cdn/docs/overview'},
+isp:{t:'Your ISP (access network)',k:'inet',w:'The network that connects your device to the Internet. It learns Google\'s prefixes over BGP, either directly from Google at a PoP (peering) or through a transit provider.',a:'The local post office for your street.',p:'§2.6.3 The local loop; §5.6.7 BGP.'},
+device:{t:'Client device',k:'inet',w:'A laptop or phone on the public Internet. It resolves the app\'s name with DNS and gets back an IP address. With Premium tier that is one global anycast VIP. With Standard tier it is a regional IP.',p:'§7.1 DNS; §5.6.2 IP addresses.'},
+backbone:{t:'Backbone link (terrestrial fiber)',k:'gbb',w:'Google-owned or leased long-haul fiber between data centers and PoPs. It is engineered with redundant paths, and SDN controllers route traffic across it.',p:'§2.2.5 Fiber optics; §5.3.2 Traffic-aware routing.',u:D+'blog/products/networking/google-global-network-principles-and-innovations'},
+subsea:{t:'Subsea cable',k:'gbb',w:'Intercontinental fiber on the seabed. Google owns several cables outright and holds capacity on many consortium cables. The names shown are real Google-backed systems, drawn schematically.',f:['Equiano: Portugal → Nigeria → Namibia → South Africa.','Dunant: Virginia ↔ France. Grace Hopper: New York ↔ UK and Spain.','Firmina: US East Coast ↔ Brazil, Uruguay and Argentina. Topaz: Canada ↔ Japan.','INDIGO: Singapore ↔ Australia. Blue-Raman: Europe ↔ India via the Middle East. Apricot: intra-Asia.'],a:'Undersea Autobahn tunnels between continents.',p:'§2.2.5 Fiber optics; §2.4.4 Satellites versus fiber.'},
+transit:{t:'Public Internet transit',k:'inet',w:'Several third-party networks carry the packet. Each one hands it on as soon as it can ("hot-potato"). The path, latency and congestion are outside Google\'s control.',p:'§5.6.7 BGP; §5.3 Congestion control algorithms.'},
+'tier-premium':{t:'Premium Tier (cold-potato)',k:'gbb',w:'Traffic enters and leaves Google\'s network at the PoP closest to the user. Google carries it the rest of the way on its own backbone. This tier is required for global load balancing, anycast VIPs and Cloud CDN.',f:['This is the default network service tier.','Global external IPs exist only in Premium tier.'],a:'Get onto the Autobahn at the nearest on-ramp.',u:D+'network-tiers/docs/overview'},
+'tier-standard':{t:'Standard Tier (hot-potato)',k:'inet',w:'Traffic travels over the public Internet and enters Google\'s network close to the destination region. It costs less per GB, but performance is variable. Only regional IPs and regional load balancers are available, and there is no Cloud CDN.',a:'Drive public roads almost all the way, then take the on-ramp next to the destination city.',u:D+'network-tiers/docs/overview'},
+b4:{t:'Inter-region path (B4 / backbone)',k:'gbb',w:'VM-to-VM traffic between regions of the same VPC stays on Google\'s backbone the whole way. It never touches the Internet and needs no VPN or peering, because the VPC is global.',f:['Google encrypts VM-to-VM traffic in transit (see the Encryption in transit paper).','You pay inter-region egress, not Internet egress.'],u:D+'docs/security/encryption-in-transit'},
+
+/* ---------- hybrid ---------- */
+onprem:{t:'On-premises network',k:'hyb',w:'Your own data center or office. It uses private addresses (here 192.168.10.0/24) and has an edge router that speaks BGP (private ASN 65001).',a:'Your company\'s own office block, off the Autobahn.'},
+'cust-router':{t:'Customer edge router',k:'hyb',w:'Your router. It runs eBGP sessions with Google\'s Cloud Router over each VLAN attachment or VPN tunnel, advertises on-prem prefixes, and learns VPC subnet prefixes.',p:'§5.6.7 BGP.',u:D+'network-connectivity/docs/router/concepts/overview'},
+colo:{t:'Colocation facility (meet-me room)',k:'hyb',w:'A carrier-neutral data center (an Equinix or Teraco site, for example) where Google has edge equipment. Dedicated Interconnect is a physical fiber cross-connect between your router and Google\'s router in the same building.',f:['Each metro has two edge availability domains (EADs), so maintenance never takes both down at once.'],u:D+'network-connectivity/docs/interconnect/concepts/choosing-colocation-facilities'},
+ead:{t:'Google edge router · Edge Availability Domain',k:'gbb',w:'Google\'s peering router in the colo. Each metro is split into two EADs that are maintained separately. For an SLA you need connections in both.',f:['99.9% SLA: 2 connections in one metro, in different EADs.','99.99% SLA: 4 connections, 2 metros × 2 EADs, plus Cloud Routers in 2 regions with global dynamic routing.'],u:D+'network-connectivity/docs/interconnect/concepts/dedicated-overview'},
+'vlan-att':{t:'VLAN attachment (interconnectAttachment)',k:'hyb',w:'The logical layer-2 link (an 802.1Q VLAN) from your router to one Cloud Router, in one region of one VPC. A single physical Interconnect can carry many attachments to different VPCs and regions.',f:['BGP runs over link-local 169.254.0.0/16 addresses on the attachment.','Capacity is 50 Mbps–400 Gbps for Dedicated and Cross-Cloud, and 50 Mbps–50 Gbps for Partner.','A single flow is limited to about 10 Gbps.'],p:'§4.8.5 Virtual LANs (802.1Q tagging).',u:D+'network-connectivity/docs/interconnect/concepts/terminology'},
+'cloud-router':{t:'Cloud Router',k:'hyb',w:'A fully distributed, managed BGP speaker. It is control plane only. It exchanges routes with your router (BGP), turns learned prefixes into dynamic routes in the VPC, and advertises the VPC\'s subnets. It never forwards packets.',f:['It is regional and attached to one VPC.','Cloud NAT and Interconnect/HA VPN need it for configuration and BGP.','Its ASN is any private ASN, except 16550 when used with Partner Interconnect.','The VPC\'s dynamic routing mode (regional or global) decides which regions can use the routes it learns.'],a:'The post office\'s address directory clerk. They trade lists of reachable addresses with the clerk on your side, but never carry a parcel.',p:'§5.6.7 BGP; §5.2.5 Link state vs §5.2.4 distance vector (BGP is path vector).',c:'Your notes say "inter-subnet traffic goes to the internal Cloud Router (Post Office) for forwarding" and that peered "Cloud Routers share information". Both are wrong. Cloud Router only exchanges routes with external BGP peers. Inside a VPC, every packet is forwarded by Andromeda on the source VM\'s host using the VPC route table. VPC peering exchanges subnet routes without any Cloud Router.',u:D+'network-connectivity/docs/router/concepts/overview'},
+dedicated:{t:'Dedicated Interconnect',k:'hyb',w:'A direct physical connection between your network and Google\'s, inside a colocation facility. You own the router in the colo, and Google provides the port.',f:['Circuits are 10, 100 or 400 Gbps Ethernet, up to 8 per connection, bundled with LACP.','Traffic is private and does not cross the Internet. It is not encrypted by default: add MACsec, or HA VPN over Interconnect.','Your router must be in a supported colo, or you extend your network there.'],a:'A private railway line built straight to Google\'s hub.',p:'§4.3.6 Gigabit Ethernet (and its successors); §4.8 Data link layer switching.',u:D+'network-connectivity/docs/interconnect/concepts/dedicated-overview'},
+partner:{t:'Partner Interconnect',k:'hyb',w:'You reach Google through a supported service provider that is already connected to Google. Use it when you are not in a Google colo or do not need 10G or more.',f:['Attachments run from 50 Mbps to 50 Gbps.','Layer 2 partner: you run BGP with Cloud Router. Layer 3 partner: the provider runs BGP for you.','Cloud Router must use ASN 16550.'],a:'A shared high-speed rail line run by a third party.',u:D+'network-connectivity/docs/interconnect/concepts/partner-overview'},
+'provider-net':{t:'Service provider network',k:'hyb',w:'The partner\'s MPLS or Ethernet network between your site and its own port into Google. It is private but shared infrastructure.',p:'§5.6.5 Label switching and MPLS.'},
+havpn:{t:'HA VPN gateway',k:'hyb',w:'A regional IPsec VPN gateway with two interfaces. Each interface has its own external IP from a separate address pool. Two tunnels, one per interface, with BGP via Cloud Router give a 99.99% SLA.',f:['IKEv1 or IKEv2 (IKEv2 recommended). ESP tunnel mode.','About 3 Gbps (≈250k packets/s) per tunnel. Add tunnels with ECMP to scale.','It can also run over Interconnect (HA VPN over Cloud Interconnect) to encrypt that traffic.','Classic VPN has one interface and a 99.9% SLA. It is legacy.'],a:'An armoured shuttle bus on the public highway.',p:'§8.6.1 IPsec; §8.6.3 Virtual private networks; §5.5.3 Tunneling.',u:D+'network-connectivity/docs/vpn/concepts/overview'},
+'vpn-peer':{t:'Peer VPN gateway (yours)',k:'hyb',w:'Your firewall or router that terminates the IPsec tunnels. It encrypts each inner packet (192.168.10.5 → 10.10.0.5) inside an outer packet between public IPs.',p:'§8.6.1 IPsec ESP.'},
+internet:{t:'Public Internet',k:'inet',w:'Best-effort transit. VPN packets cross it encrypted. Anyone on the path sees only the outer public IPs.',p:'§1.2.5 Internetworks.'},
+'google-edge':{t:'Google network edge',k:'gbb',w:'Where external traffic (VPN outer packets, Interconnect circuits, peering sessions) lands on Google\'s backbone before it is handed into a VPC or to Google services.'},
+'direct-peering':{t:'Direct Peering',k:'hyb',w:'You exchange BGP routes directly with Google (AS15169) at an edge location. You need a public ASN and public IPs. It reaches Google\'s public services (Workspace, public googleapis.com), not your VPC\'s private IPs.',f:['There is no SLA and no Cloud Router.','Use it for heavy Workspace or API traffic. Use Interconnect to reach VPCs.'],u:D+'network-connectivity/docs/direct-peering'},
+'carrier-peering':{t:'Carrier Peering',k:'hyb',w:'The same reach as Direct Peering (Google public services), but through a carrier that already peers with Google. Any SLA comes from the carrier.',u:D+'network-connectivity/docs/carrier-peering'},
+ixp:{t:'Internet exchange / PNI',k:'inet',w:'The physical point where your AS and Google\'s AS15169 peer: a shared exchange fabric (IXP) or a private cable (PNI).',p:'§5.6.7 BGP peering.'},
+carrier:{t:'Carrier network',k:'inet',w:'An ISP or carrier that already peers with Google and sells you connectivity to Google\'s public IPs.'},
+cci:{t:'Cross-Cloud Interconnect',k:'hyb',w:'A dedicated physical connection between Google Cloud and another cloud (AWS, Azure, Oracle, Alibaba), which Google provisions in a shared colo. Architecturally it is Dedicated Interconnect, but Google handles the cross-connect.',f:['10 or 100 Gbps ports. Attachments up to 400 Gbps (GA in 2026).','You still create VLAN attachments and Cloud Router BGP sessions.'],u:D+'network-connectivity/docs/interconnect/concepts/cci-overview'},
+aws:{t:'Other cloud (AWS VPC)',k:'hyb',w:'An AWS VPC (172.31.0.0/16) connected through AWS Direct Connect on its side and Cross-Cloud Interconnect on Google\'s side.'},
+gsvc:{t:'Google public services',k:'gbb',w:'Google APIs and Workspace on Google\'s public IP space. You can reach them over the Internet, Direct or Carrier Peering, or privately from a VPC or on-prem through Private Google Access.'},
+'pga-hybrid':{t:'Private Google Access for on-prem hosts',k:'hyb',w:'On-prem hosts reach Google APIs over Interconnect or VPN, not the Internet. Cloud Router advertises 199.36.153.8/30 (private.googleapis.com) or 199.36.153.4/30 (restricted.googleapis.com), and on-prem DNS points *.googleapis.com at those IPs.',f:['Use restricted.googleapis.com when VPC Service Controls protects the APIs.'],u:D+'vpc/docs/private-google-access-hybrid'},
+macsec:{t:'MACsec for Cloud Interconnect',k:'hyb',w:'Layer-2 encryption (IEEE 802.1AE) between your router and Google\'s edge router on Dedicated Interconnect. It encrypts the physical hop at line rate.',u:D+'network-connectivity/docs/interconnect/concepts/macsec-overview'},
+
+/* ---------- VPC ---------- */
+vpc:{t:'VPC network',k:'vpc',w:'A global, private, software-defined network inside one project. It holds subnets (regional), routes, firewall rules and peerings. Custom mode means you create every subnet yourself.',f:['Auto mode creates one /20 per region from 10.128.0.0/9. Prefer custom mode in production.','A VPC has no IP range of its own. Only its subnets do.','It is the main isolation boundary. Two VPCs cannot talk unless you connect them.'],a:'Your private Autobahn network.',p:'§5.5 Internetworking; §5.5.3 Tunneling.',u:D+'vpc/docs/vpc'},
+subnet:{t:'Subnet',k:'vpc',w:'A regional IP range (primary CIDR, plus optional secondary ranges). VMs in any zone of that region can use it.',f:['Smallest IPv4 primary range is /29, largest /8. You can expand a range but never shrink it.','Settings live on the subnet: Private Google Access, flow logs, secondary ranges (used by GKE pods and services).','4 addresses are reserved in each primary range. See the Addressing view.'],a:'An office block in one city. Every office in it shares the block\'s address range.',p:'§5.6.2 IP addresses: subnets and CIDR.',u:D+'vpc/docs/subnets'},
+vm:{t:'VM instance & vNIC',k:'vpc',w:'A Compute Engine VM. Each vNIC gets a primary internal IP from its subnet, and optionally alias IPs and one external IP. The OS sees only the internal IP. External IPs are 1:1 NAT done by the virtual network.',f:['It gets its address, DNS (169.254.169.254) and routes from the metadata server via DHCP.','Firewall rules are enforced at this vNIC.'],a:'An office (host) at an address.',c:'Your notes say "a device is assigned an IP address by a router". In GCP the address is allocated from the subnet when the VM is created, and the metadata server delivers it over DHCP. No router is involved.',u:D+'vpc/docs/ip-addresses'},
+'route-table':{t:'VPC route table',k:'vpc',w:'One table for the whole VPC. Andromeda programs it onto every host. For each packet, the most specific matching route wins (longest prefix). Ties are broken by priority.',f:['Subnet routes: one per subnet range, created and removed with the subnet. You cannot override them with a less specific route.','Static routes, for example the default 0.0.0.0/0 → default-internet-gateway.','Dynamic routes, learned by Cloud Router over BGP. Usable in one region or all regions, depending on dynamic routing mode.','Peering routes are imported from peered VPCs.'],p:'§5.6.2 Longest-prefix matching; §5.2 Routing algorithms.',u:D+'vpc/docs/routes'},
+igw:{t:'default-internet-gateway',k:'vpc',w:'A next hop, not a device. A route to it sends packets out of the VPC to the Internet, or to Google APIs. It delivers only to external (public) IPs, and only if the VM has an external IP, uses Cloud NAT, or the destination is Google APIs with Private Google Access.',u:D+'vpc/docs/routes'},
+'cloud-nat':{t:'Cloud NAT',k:'vpc',w:'Distributed, software-defined source NAT for VMs that have no external IP. There is no proxy box: Andromeda on each host rewrites the source to a NAT IP and port range. It allows outbound connections and their replies only, never unsolicited inbound.',f:['Regional. It is configured on a Cloud Router (configuration only, no BGP needed).','It does not apply to a VM\'s NIC if that NIC has its own external IP.'],a:'A shared return address on outgoing parcels. Nobody can send a parcel to that address first.',p:'§5.6.2 NAT (network address translation).',c:'Your notes picture NAT as a single process on the path. In GCP it happens on the sending host (Andromeda), so it has no choke point and no single point of failure.',u:D+'nat/docs/overview'},
+'ext-ip':{t:'External IP address',k:'vpc',w:'A public IPv4 address mapped 1:1 to a VM\'s internal IP. It can be ephemeral or reserved (static). It is regional for VMs and regional load balancers, and global for global load balancers in Premium tier.',f:['The VM never sees this address on its interface.','Inbound traffic still needs an ingress allow rule.'],u:D+'vpc/docs/ip-addresses'},
+pga:{t:'Private Google Access (PGA)',k:'vpc',w:'A per-subnet setting. VMs with only internal IPs can reach Google APIs (storage.googleapis.com and others) through the default internet gateway route. The traffic never touches the Internet.',f:['It does nothing for VMs that already have an external IP. They reach APIs anyway.','For hybrid hosts, use private.googleapis.com or restricted.googleapis.com.'],u:D+'vpc/docs/private-google-access'},
+iap:{t:'IAP TCP forwarding',k:'vpc',w:'Identity-Aware Proxy lets you SSH or RDP into VMs that have no external IP. Your client tunnels to IAP over HTTPS, IAP checks IAM, then connects to the VM from 35.235.240.0/20.',f:['You need an ingress allow rule from 35.235.240.0/20 on tcp:22 (or 3389).','The user needs roles/iap.tunnelResourceAccessor.'],u:D+'iap/docs/using-tcp-forwarding'},
+'dev-vpc':{t:'Another VPC (isolated)',k:'vpc',w:'A second VPC, even in the same project, is a separate routing domain. It can reuse the same IP ranges (here 10.10.0.0/24) because the two never share a route table.',f:['To connect two VPCs: VPC Network Peering, Network Connectivity Center, VPN, or Private Service Connect.'],c:'Projects are not network boundaries. VPCs are. One project can hold many isolated VPCs, and one VPC (Shared VPC) can serve many projects.',u:D+'vpc/docs/vpc'},
+andromeda:{t:'Andromeda (the virtual network stack)',k:'vpc',w:'Google\'s SDN that turns VPC configuration into packet processing on every physical host. It handles routing lookups, firewall enforcement, NAT and load balancing, then encapsulates packets to the destination host over the Jupiter fabric and backbone.',f:['Your VPC\'s routing and firewalling is spread across every host. There is no central router.','Hoverboard and gateways handle long-tail flows. Hot flows go host to host.'],a:'Every office has its own sorting machine. It reads the route table and puts the parcel straight onto the correct Autobahn lane.',p:'§5.5.3 Tunneling; §4.8.4 Switches vs routers.',u:D+'blog/products/networking/google-cloud-networking-in-depth-how-andromeda-2-2-enables-high-throughput-vms'},
+'routing-mode':{t:'Dynamic routing mode',k:'vpc',w:'A VPC setting. In regional mode, routes a Cloud Router learns are usable only by VMs in that router\'s region. In global mode they are usable from every region.',u:D+'vpc/docs/routes#dynamic-routes'},
+'fw-basic':{t:'VPC firewall (simplified here)',k:'fw',w:'Stateful allow and deny rules enforced at each vNIC. The default is to deny all ingress and allow all egress. The Firewalls view shows the full evaluation order.',u:D+'firewall/docs/firewalls'},
+'phys-host':{t:'Physical host',k:'gbb',w:'The server your VM runs on. Its Andromeda dataplane encapsulates the VM\'s packets and sends them over Jupiter (the in-DC fabric) or the backbone to the destination host.',p:'§5.5.3 Tunneling.'},
+
+/* ---------- addressing ---------- */
+cidr:{t:'CIDR prefix',k:'addr',w:'a.b.c.d/N means the first N bits are the network part and the remaining 32−N bits number the hosts. The block holds 2^(32−N) addresses.',f:['A smaller N means a bigger block: /8 is 16.7M addresses, /29 is 8.'],p:'§5.6.2 IP addresses: CIDR (classless inter-domain routing).',u:D+'vpc/docs/subnets'},
+mask:{t:'Subnet mask',k:'addr',w:'The prefix written as 32 bits: N ones, then zeros (/24 = 255.255.255.0). AND-ing an address with the mask gives the network address. A host uses that to decide "same subnet or via gateway".',p:'§5.6.2 Subnets.'},
+reserved:{t:'Reserved addresses in a GCP subnet',k:'addr',w:'Google Cloud reserves four addresses in every primary IPv4 range: the network address, the default gateway (.1), the second-to-last address (reserved by Google), and the broadcast address. So usable = 2^(32−N) − 4.',f:['Example /24: .0 network, .1 gateway, .254 reserved, .255 broadcast. 252 usable.','/29 is the smallest subnet: 8 − 4 = 4 usable.'],c:'Your notes give "2^(32−N) − 2". That is the classic Internet rule (network + broadcast). Google Cloud subtracts 4. Your notes also say the "first two and last two are reserved", which is right for GCP, so use −4.',u:D+'vpc/docs/subnets#reserved_ip_addresses_in_every_subnet'},
+rfc1918:{t:'RFC 1918 private ranges',k:'addr',w:'10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16 are not routed on the public Internet. These are the normal choices for subnets.',p:'§5.6.2 Private address space & NAT.'},
+cgnat:{t:'100.64.0.0/10 and other non-RFC1918 ranges',k:'addr',w:'Google Cloud also accepts the shared address space (RFC 6598) and some other ranges for subnets. It even accepts privately used public IPs, which are risky because they shadow real Internet destinations.',u:D+'vpc/docs/subnets#valid-ranges'},
+metadata:{t:'169.254.169.254 · metadata server',k:'addr',w:'A link-local address on every VM. It serves instance metadata and tokens, DHCP and DNS. Traffic to it is always allowed and never leaves the host.',u:D+'compute/docs/metadata/overview'},
+'iap-range':{t:'35.235.240.0/20 · IAP',k:'addr',w:'The source range IAP TCP forwarding uses to reach your VMs. Allow it on tcp:22/3389 instead of opening SSH to 0.0.0.0/0.',u:D+'iap/docs/using-tcp-forwarding'},
+'hc-range':{t:'35.191.0.0/16 · 130.211.0.0/22',k:'addr',w:'The sources of Google health-check probes and of GFE proxy connections to backends. Backends of most load balancers need an ingress allow rule for these ranges.',u:D+'load-balancing/docs/health-check-concepts#ip-ranges'},
+'pga-range':{t:'199.36.153.8/30 · private.googleapis.com',k:'addr',w:'A VIP for reaching most Google APIs privately from VPCs and on-prem. It is not announced on the Internet.',u:D+'vpc/docs/configure-private-google-access'},
+'rest-range':{t:'199.36.153.4/30 · restricted.googleapis.com',k:'addr',w:'Like private.googleapis.com, but it serves only APIs that VPC Service Controls supports. Use it to enforce a service perimeter.',u:D+'vpc-service-controls/docs/set-up-private-connectivity'},
+'auto-range':{t:'10.128.0.0/9 · auto mode VPC',k:'addr',w:'Auto mode VPCs carve one /20 per region out of this block. They collide with each other, and often with on-prem, when you peer or connect them. That is a key reason to use custom mode.',u:D+'vpc/docs/subnets#ip-ranges'},
+'default-range':{t:'0.0.0.0/0 · default route',k:'addr',w:'Matches everything. Being the least specific, it loses to any other matching route. In a new VPC it points to default-internet-gateway at priority 1000.',p:'§5.6.2 Longest-prefix match.'},
+'alias-ip':{t:'Secondary ranges & alias IPs',k:'addr',w:'Extra CIDRs on a subnet, assigned to a VM as alias ranges. GKE VPC-native clusters use them for pods and services, so pod IPs are first-class VPC addresses.',u:D+'vpc/docs/alias-ip'},
+'gw-addr':{t:'Default gateway (.1)',k:'addr',w:'The subnet\'s second address. It is a virtual next hop that Andromeda answers for, not a physical router interface.',c:'Your notes describe the gateway as the "router interface (Post Office door)" that a host sends off-subnet packets to. In GCP every packet, even one to a same-subnet neighbour, goes to the virtual network on the host, which delivers it straight to the destination host. The .1 gateway is a virtual address.'},
+
+/* ---------- firewalls ---------- */
+'fw-hier':{t:'Hierarchical firewall policy',k:'fw',w:'Rules attached to the organization or a folder. They are evaluated before anything in the VPC, so central security can enforce guardrails (always deny RDP from the Internet, always allow health checks) that project owners cannot override.',f:['Actions: allow, deny (both final), or goto_next (hand down to the next level).','If no rule matches, evaluation continues to the next level.','Org is evaluated first, then folders from the top down.'],u:D+'firewall/docs/firewall-policies'},
+'fw-vpc':{t:'VPC firewall rules',k:'fw',w:'The classic per-VPC rules. The highest priority (lowest number) matching rule decides. Between equal priorities, deny beats allow. Allow and deny are both final.',f:['Targets: all instances, network tags, or service accounts.','Ingress sources: CIDRs, tags, or service accounts. Egress destinations: CIDRs.','Priority runs from 0 to 65535.'],p:'§8.6.2 Firewalls (packet filters).',u:D+'firewall/docs/firewalls'},
+'fw-gnp':{t:'Global network firewall policy',k:'fw',w:'The newer, IAM-governed policy object attached to a VPC. It supports secure tags and, with Cloud NGFW Standard, FQDN, geolocation and threat-intelligence objects. Enterprise adds IPS (L7 inspection).',f:['By default it is evaluated after the VPC firewall rules. The order can be switched per VPC.'],u:D+'firewall/docs/network-firewall-policies'},
+'fw-rnp':{t:'Regional network firewall policy',k:'fw',w:'The same as a global network policy but scoped to one region. It is evaluated after the global one.',u:D+'firewall/docs/regional-firewall-policies'},
+'fw-implied':{t:'Implied rules (priority 65535)',k:'fw',w:'Every VPC has two rules you cannot delete: deny all ingress and allow all egress. They apply only when nothing above matched.',a:'"No parcel enters an office unless someone explicitly allowed it. Any parcel may leave." (from your notes)',u:D+'firewall/docs/firewalls#default_firewall_rules'},
+'fw-stateful':{t:'Connection tracking (stateful)',k:'fw',w:'When a connection is allowed in one direction, return packets of the same flow are allowed automatically, whatever the rules in the other direction say.',f:['Tracked by 5-tuple. Idle TCP entries time out after about 10 minutes.'],a:'The inspector keeps a return receipt for every parcel it lets out (from your notes).',p:'§8.6.2 Firewalls: stateful filtering.',u:D+'firewall/docs/firewalls#specifications'},
+'fw-always':{t:'Always blocked / always allowed',k:'fw',w:'Some traffic skips your rules. Egress to TCP 25 (SMTP) on external IPs is always blocked. Traffic to the metadata server (169.254.169.254) is always allowed.',u:D+'firewall/docs/firewalls#blockedtraffic'},
+'fw-target':{t:'Target VM',k:'fw',w:'The rule\'s target is the VM whose vNIC enforces it. For ingress that is the receiver. For egress it is the sender. VM-to-VM traffic is checked twice: egress at the sender, then ingress at the receiver.'},
+'fw-req':{t:'The packet being evaluated',k:'fw',w:'Source, destination and protocol:port. Every enforcement point checks it against the layers from top to bottom.'},
+'cloud-armor':{t:'Cloud Armor vs VPC firewall',k:'fw',w:'Cloud Armor runs at the GFE edge in front of external load balancers. It provides L7 WAF, rate limiting and DDoS protection. VPC firewalls run at the VM vNIC (L3/L4). Backends behind a proxy load balancer see GFE source IPs, so filter clients with Cloud Armor, not the VPC firewall.',u:D+'armor/docs/cloud-armor-overview'},
+
+/* ---------- projects / shared vpc ---------- */
+org:{t:'Organization',k:'iam',w:'The root node of the resource hierarchy, tied to your Workspace or Cloud Identity domain. Hierarchical firewall policies and org policies (for example "no external IPs") attach here.',u:D+'resource-manager/docs/cloud-platform-resource-hierarchy'},
+folder:{t:'Folder',k:'iam',w:'Groups projects, typically by department or environment. IAM bindings and firewall policies set on a folder are inherited by its projects.'},
+'host-project':{t:'Shared VPC host project',k:'iam',w:'The project that owns the Shared VPC network: its subnets, routes, firewall rules, Cloud NAT, Interconnect and VPN. The central network team administers it.',f:['A project is either a host or a service project, never both.','A service project attaches to exactly one host project.'],u:D+'vpc/docs/shared-vpc'},
+'service-project':{t:'Service project',k:'iam',w:'Holds workloads (VMs, GKE, Cloud Run) whose network interfaces sit in the host project\'s subnets. The VM resource, its IAM and its billing stay in the service project.',u:D+'vpc/docs/shared-vpc'},
+'shared-vpc':{t:'Shared VPC network',k:'vpc',w:'One VPC in the host project, used by many service projects. All workloads share one route table and firewall, and talk over internal IPs as if they were in one project.',a:'One Autobahn network, many companies renting offices on it. The road authority (network team) controls the roads and the security checks.',u:D+'vpc/docs/shared-vpc'},
+'network-user':{t:'roles/compute.networkUser',k:'iam',w:'Grants permission to put a NIC (VM, load balancer and so on) into a Shared VPC subnet. Grant it per subnet to service project admins, so each team can deploy only into its own subnets.',u:D+'vpc/docs/shared-vpc#iam_in_shared_vpc'},
+'xpn-admin':{t:'Shared VPC Admin (roles/compute.xpnAdmin)',k:'iam',w:'Granted at org or folder level. Lets you enable host projects and attach service projects. It is the role behind the separation of duties.'},
+nic:{t:'NIC in a host subnet',k:'vpc',w:'The VM lives in the service project, but this interface, and so its IP, routes and firewall, belongs to the host\'s subnet.'},
+'net-res':{t:'Network resources (host project)',k:'vpc',w:'Firewall rules, routes, Cloud Router and NAT, VPN and Interconnect attachments all live centrally in the host project. Service project teams cannot change them.'},
+standalone:{t:'Standalone project & VPC',k:'iam',w:'A project with its own VPC. It is fully isolated from the Shared VPC until you connect them (peering, NCC, VPN or PSC).'},
+'iam-check':{t:'IAM check on subnet use',k:'iam',w:'Creating a VM in a Shared VPC subnet calls compute.subnetworks.use on that subnet. The caller must hold networkUser on that subnet, or on the whole host project.'},
+
+/* ---------- peering & beyond ---------- */
+peering:{t:'VPC Network Peering',k:'vpc',w:'Joins two VPCs (any projects or orgs) so they exchange subnet routes. Traffic uses internal IPs over the same Andromeda dataplane, so latency and bandwidth match a single VPC.',f:['Both sides must create the peering.','Each side keeps its own firewall. Rules must allow the peer\'s ranges.','Subnet ranges cannot overlap.','Static and dynamic (custom) routes are exchanged only if you enable export and import of custom routes.'],a:'Two Autobahn networks agree to share their address directories.',c:'Your notes picture peering as "a private, secure tunnel (a dedicated, fast road)" set up by the Cloud Routers. There is no tunnel and no Cloud Router: the VPC control plane exchanges route entries, and packets travel exactly as they would inside one VPC.',u:D+'vpc/docs/vpc-peering'},
+'non-transitive':{t:'Peering is non-transitive',k:'vpc',w:'A peers with B and B peers with C, but A cannot reach C. B does not re-export routes it learned from A to C. Hub-and-spoke designs need NCC, VPN or appliances.',p:'§5.6.7 BGP policy: a route you learn is not automatically one you advertise.',u:D+'vpc/docs/vpc-peering'},
+'custom-routes':{t:'Export / import custom routes',k:'vpc',w:'Peering settings that share static and dynamic routes, not just subnet routes. This is how a peered VPC (or the Cloud SQL producer VPC) learns the route back to on-prem through your VPN or Interconnect.',f:['On-prem also needs the peered ranges advertised: use a Cloud Router custom advertisement.'],u:D+'vpc/docs/vpc-peering#importing-exporting-routes'},
+ncc:{t:'Network Connectivity Center (NCC) hub',k:'vpc',w:'A hub-and-spoke control plane. VPC spokes attached to a hub exchange subnet routes transitively (full mesh, or star with preset topology). Hybrid spokes (VPN, Interconnect, router appliances) can join too.',f:['Spokes cannot overlap unless you exclude the overlapping ranges.'],u:D+'network-connectivity/docs/network-connectivity-center/concepts/overview'},
+psa:{t:'Private services access (PSA)',k:'vpc',w:'For Google-managed services like Cloud SQL, Memorystore and Filestore. You allocate a range (here 10.100.0.0/20), and Service Networking peers your VPC with Google\'s producer VPC. The service gets IPs from your allocated range.',f:['It is a peering, so it is non-transitive too: on-prem needs export custom routes on that peering plus an advertisement.'],u:D+'vpc/docs/private-services-access'},
+psc:{t:'Private Service Connect (PSC)',k:'vpc',w:'A consumer creates an endpoint (an internal IP in its own subnet) that maps to a producer\'s service attachment. Traffic is NAT\'d and the networks exchange no routes, so overlapping IPs are fine and access is per service, not network-wide.',f:['Also used for Google APIs (a PSC endpoint for all-apis or vpc-sc).'],u:D+'vpc/docs/private-service-connect'},
+'svc-att':{t:'Service attachment',k:'vpc',w:'The producer side of PSC. It publishes an internal load balancer and NATs consumer traffic from its own PSC NAT subnet, then accepts or rejects consumer projects.'},
+overlap:{t:'Overlapping ranges',k:'addr',w:'Peering and NCC refuse VPCs whose subnet ranges overlap, because routing would be ambiguous. PSC and NAT-based designs tolerate overlap.',p:'§5.6.2 Address uniqueness and NAT.'},
+'hy-link':{t:'Hybrid link (HA VPN / Interconnect)',k:'hyb',w:'Connects on-prem to vpc-a. Cloud Router in vpc-a learns 192.168.0.0/16 and advertises vpc-a\'s subnets by default. It advertises peered ranges only with a custom advertisement.'},
+'cr-a':{t:'Cloud Router (vpc-a)',k:'hyb',w:'Speaks BGP to on-prem. Its default advertisement includes only vpc-a\'s own subnets.'},
+};
+
+/* ================= HELPERS ================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+let N={};                                  // node registry for the current render: id -> {x,y}
+const P=(id,x,y)=>{N[id]={x,y};};
+const T=(x,y,s,cls='lbl',anc='start')=>`<text x="${x}" y="${y}" class="${cls}" text-anchor="${anc}">${esc(s)}</text>`;
+const ii=(x,y,k)=>`<g class="ii" data-k="${k}" transform="translate(${x},${y})"><circle r="6.5"/><text y="3.2">i</text></g>`;
+const L=(pts,cls)=>`<polyline class="${cls}" points="${pts.map(p=>p.join(',')).join(' ')}"/>`;
+const ln=(x1,y1,x2,y2,cls)=>`<line class="${cls}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+function curve(a,b,bend,n=14){const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2,dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy)||1;const cx=mx-dy/len*bend,cy=my+dx/len*bend;const o=[];for(let i=0;i<=n;i++){const t=i/n;o.push([(1-t)*(1-t)*a[0]+2*(1-t)*t*cx+t*t*b[0],(1-t)*(1-t)*a[1]+2*(1-t)*t*cy+t*t*b[1]]);}return o;}
+/* box node: id, x,y,w,h (top-left), label, info key, cls, sub-label */
+function box(id,x,y,w,h,label,k,cls,sub,o={}){P(id,x+w/2,y+h/2);let s=`<g class="nd ${cls}" data-id="${id}" data-k="${k}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${o.rx??6}"/>`;
+  if(o.center){s+=T(x+w/2,y+h/2+(sub?-2:4),label,'lbl b','middle');if(sub)s+=T(x+w/2,y+h/2+11,sub,'sm mono','middle');}
+  else{s+=T(x+8,y+15,label,'lbl b');if(sub)s+=T(x+8,y+28,sub,'sm mono');}
+  s+='</g>';if(!o.noi)s+=ii(x+w,y,k);return s;}
+function frame(x,y,w,h,label,k,color,sub){let s=`<g class="nd" data-id="fr-${k}-${x}" data-k="${k}"><rect class="frame" x="${x}" y="${y}" width="${w}" height="${h}" rx="9" style="stroke:${color};fill:color-mix(in srgb,${color} 5%,transparent)"/>`+T(x+10,y+16,label,'hd')+(sub?T(x+10,y+29,sub,'sm mono'):'')+'</g>'+ii(x+w-10,y+11,k);return s.replace('class="hd"',`class="hd" style="fill:${color.replace(')','-ink)')}"`);}
+function vm(id,x,y,name,ip,k='vm',off){P(id,x,y);return `<g class="nd vm ${off?'off':''}" data-id="${id}" data-k="${k}"><rect x="${x-44}" y="${y-17}" width="88" height="34" rx="5"/>${T(x,y-3,name,'lbl b','middle')}${T(x,y+10,ip,'sm mono','middle')}</g>`;}
+function cloud(id,x,y,rx,ry,label,k,sub){P(id,x,y);return `<g class="nd" data-id="${id}" data-k="${k}"><ellipse class="inetc" cx="${x}" cy="${y}" rx="${rx}" ry="${ry}"/>${T(x,y+(sub?-2:4),label,'lbl b','middle')}${sub?T(x,y+11,sub,'sm mono','middle'):''}</g>${ii(x+rx-8,y-ry+6,k)}`;}
+function callout(x,y,tx,ty,text){if(!S.ann)return '';const lines=text.split('\n');return `<g class="callout"><circle cx="${x}" cy="${y}" r="2.5"/><line x1="${x}" y1="${y}" x2="${tx}" y2="${ty}"/>${lines.map((l,i)=>`<text x="${tx+(tx>=x?3:-3)}" y="${ty+4+i*12}" text-anchor="${tx>=x?'start':'end'}">${esc(l)}</text>`).join('')}</g>`;}
+/* hop helper */
+const H=(n,layer,title,detail,o={})=>Object.assign({n,layer,title,detail},o);
+/* IPv4 */
+const ip2n=s=>{const p=String(s).trim().split('.').map(Number);if(p.length!==4||p.some(x=>!(x>=0&&x<=255)||Number.isNaN(x)))return null;return ((p[0]<<24)>>>0)+(p[1]<<16)+(p[2]<<8)+p[3];};
+const n2ip=n=>[n>>>24,(n>>>16)&255,(n>>>8)&255,n&255].join('.');
+const maskN=p=>p===0?0:(0xFFFFFFFF<<(32-p))>>>0;
+function inCidr(ip,c){const [b,p]=c.split('/');const pl=+p,bi=ip2n(b),ii_=ip2n(ip);if(bi==null||ii_==null)return false;const m=maskN(pl);return ((bi&m)>>>0)===((ii_&m)>>>0);}
+function cidrOverlap(a,b){const [ab,ap]=a.split('/'),[bb,bp]=b.split('/');const m=maskN(Math.min(+ap,+bp));return ((ip2n(ab)&m)>>>0)===((ip2n(bb)&m)>>>0);}
+/* LPM over a route list [{dst, ...}] with optional filter */
+function lpm(routes,ip){let best=null;for(const r of routes){if(r.usable===false)continue;if(inCidr(ip,r.dst)){const pl=+r.dst.split('/')[1];if(!best||pl>+best.dst.split('/')[1])best=r;}}return best;}
+function routeTable(x,y,w,title,rows,hitDst,k='route-table'){const rh=17;let s=`<g class="rt nd" data-id="rt-${x}" data-k="${k}"><rect class="bg" x="${x}" y="${y}" width="${w}" height="${30+rows.length*rh}" rx="6"/>${T(x+10,y+16,title,'hd').replace('class="hd"','class="hd" style="fill:var(--vpc)"')}`;
+  s+=`<text x="${x+10}" y="${y+28}" style="fill:var(--dim);font-size:9px">DESTINATION</text><text x="${x+130}" y="${y+28}" style="fill:var(--dim);font-size:9px">NEXT HOP · TYPE</text>`;
+  rows.forEach((r,i)=>{const yy=y+32+i*rh;const hit=hitDst&&r.dst===hitDst;s+=`<g class="${hit?'hit':''}"><rect x="${x+4}" y="${yy}" width="${w-8}" height="${rh-2}" rx="3" style="fill:${hit?'':'transparent'};stroke:${hit?'':'transparent'}"/><text x="${x+10}" y="${yy+11}" style="fill:${r.usable===false?'var(--dim)':'var(--text)'}">${esc(r.dst)}</text><text x="${x+130}" y="${yy+11}" style="fill:${r.usable===false?'var(--dim)':'var(--vpc-ink)'}">${esc(r.nh)}</text></g>`;});
+  return s+'</g>'+ii(x+w-10,y+11,k);}
+</script>
+<script>
+/* ================= ENGINE =================
+   One state object. Every control writes to it; render() redraws the SVG from it.
+   A scenario's run(state) returns {hops:[...], ok, summary}. Packets only move when the user presses Send/Step. */
+const VIEWS=[];
+const S={view:null,ann:true,selK:null,selId:null,scen:{},step:-1,trace:null,v:{},anim:null};
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const V=()=>VIEWS.find(v=>v.id===S.view);
+const st=()=>S.v[S.view];
+const LAYER={inet:'Internet',gbb:'Backbone',vpc:'VPC',hyb:'Hybrid',fw:'Firewall',iam:'IAM',addr:'Address'};
+const CORR={'lens-vpc':'vpc','cloud-router':'hybrid',vm:'vpc','cloud-nat':'vpc','dev-vpc':'vpc',reserved:'addr','gw-addr':'addr',peering:'peering',zone:'backbone'};
+
+function hopPos(h){if(h.at)return {x:h.at[0],y:h.at[1]};const p=N[h.n];if(!p){console.warn('missing node',h.n);return {x:0,y:0};}return p;}
+function hopSegs(hops){ /* returns array (per hop i>=1) of point lists from hop i-1 to hop i; 'J' in via = jump */
+  const out=[null];for(let i=1;i<hops.length;i++){const a=hopPos(hops[i-1]),b=hopPos(hops[i]);let pts=[[a.x,a.y]];(hops[i].via||[]).forEach(p=>pts.push(p));pts.push([b.x,b.y]);out.push(pts);}return out;}
+function polyStr(pts){let d='',pen=false;for(const p of pts){if(p==='J'){pen=false;continue;}d+=(pen?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1);pen=true;}return d;}
+
+function render(){
+  const v=V(),s=st();
+  const sc=v.scenarios&&v.scenarios.find(x=>x.id===S.scen[v.id]);
+  S.trace=sc&&sc.run?sc.run(s):null;
+  const hits=S.trace?S.trace.hops.slice(0,S.step+1):[];
+  N={};
+  let svg=v.draw(s,hits);
+  if(v.legend)svg+=v.legend(s);
+  $('#stage').innerHTML=svg+'<g id="ov"></g>';
+  if(S.selId)document.querySelectorAll(`#stage [data-id="${CSS.escape(S.selId)}"]`).forEach(e=>e.classList.add('sel'));
+  drawOverlay();renderTrace();renderInsp();renderPrompt();
+}
+function drawOverlay(){
+  const ov=$('#ov');if(!ov)return;let s='';const tr=S.trace;
+  if(tr&&tr.hops.length>1){const segs=hopSegs(tr.hops);
+    const all=[];segs.slice(1).forEach((p,i)=>{all.push(...(i?p.slice(1):p));});
+    s+=`<path class="route" d="${polyStr(all)}" style="opacity:.22;stroke-dasharray:6 6"/>`;
+    if(S.step>0){const done=[];segs.slice(1,S.step+1).forEach((p,i)=>done.push(...(i?p.slice(1):p)));s+=`<path class="route ${tr.ok?'':'bad'}" d="${polyStr(done)}"/>`;}
+    if(S.step>=0){const h=tr.hops[S.step],p=hopPos(h);
+      if(S.step===tr.hops.length-1&&!tr.ok){s+=`<g transform="translate(${p.x},${p.y})"><line class="xmark" x1="-9" y1="-9" x2="9" y2="9"/><line class="xmark" x1="9" y1="-9" x2="-9" y2="9"/></g>`;}
+      else s+=`<circle class="pkt" id="pkt" cx="${p.x}" cy="${p.y}" r="6.5"/>`;}
+  }
+  ov.innerHTML=s;
+}
+function renderTrace(){
+  const ol=$('#trace'),vd=$('#verdict'),tr=S.trace,v=V();
+  $('#scencard').style.display=v.scenarios?'':'none';
+  ol.parentElement.style.display=v.noTrace?'none':'';document.querySelector('.play').style.display=v.noTrace?'none':'';document.querySelector('#scencard h2').textContent=v.noTrace?'Presets':'Scenarios · send a packet';
+  if(!tr){ol.innerHTML='<li style="cursor:default"><span class="n">–</span><span class="muted">Pick a scenario.</span></li>';vd.innerHTML='';return;}
+  ol.innerHTML=tr.hops.map((h,i)=>{const cls=i===S.step?'cur':(i<S.step?'past':'');const fail=(i===tr.hops.length-1&&!tr.ok&&i<=S.step)?' fail':'';
+    const show=i<=S.step;return `<li class="${cls}${fail}" data-i="${i}"><span class="n">${i}</span><div><span class="chip c-${h.layer}">${LAYER[h.layer]||h.layer}</span><b>${esc(h.title)}</b>${show?`<p>${h.detail}</p>`:''}</div></li>`;}).join('');
+  const cur=ol.querySelector('.cur');if(cur){const t=cur.getBoundingClientRect().top-ol.getBoundingClientRect().top+ol.scrollTop;if(t<ol.scrollTop||t+cur.offsetHeight>ol.scrollTop+ol.clientHeight)ol.scrollTop=t-30;}
+  if(S.step>=tr.hops.length-1)vd.innerHTML=`<div class="verdict ${tr.ok?'ok':'bad'}"><b>${tr.ok?'✓ Delivered':'✕ Not delivered'}</b> · ${tr.summary}</div>`;
+  else vd.innerHTML=`<div class="dim" style="font-size:12px;margin-top:6px">${tr.hops.length} hops planned (faint dashed line). Press <b>Send</b> to play, or <b>Step</b> to go one hop at a time and read each decision.</div>`;
+}
+function renderInsp(){
+  const el=$('#insp'),v=V();
+  const i=S.selK&&INFO[S.selK];
+  if(!i){el.innerHTML=`<h2>Inspector</h2><h4>${esc(v.title)}</h4><div class="muted" style="font-size:13px">${v.intro}</div><p class="dim" style="font-size:12px">Click any element, or a small <b>ⓘ</b>, to see what it is, how it works, the first principle behind it, and corrections to your notes.</p>`;return;}
+  let h=`<h2>Inspector</h2><h4>${esc(i.t)}</h4><span class="kind c-${i.k}">${LAYER[i.k]||''} lens</span><p>${esc(i.w)}</p>`;
+  if(i.f)h+='<ul>'+i.f.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>';
+  if(i.a)h+=`<div class="box an"><b>Your mental model</b>${esc(i.a)}</div>`;
+  if(i.p)h+=`<div class="box fp"><b>First principle · Tanenbaum</b>${esc(i.p)}</div>`;
+  if(i.c)h+=`<div class="box cx"><b>⚠ Correction to your notes</b>${esc(i.c)}</div>`;
+  if(i.u)h+=`<p style="font-size:12px"><a href="${i.u}" target="_blank" rel="noopener">Google Cloud docs ↗</a> · <a href="#" id="clrSel">back to view overview</a></p>`;
+  else h+=`<p style="font-size:12px"><a href="#" id="clrSel">back to view overview</a></p>`;
+  el.innerHTML=h;
+  const c=$('#clrSel');if(c)c.onclick=e=>{e.preventDefault();S.selK=S.selId=null;render();};
+}
+function renderControls(){
+  const v=V(),s=st(),el=$('#ctl');let h='';
+  (v.controls||[]).forEach(c=>{
+    if(c.type==='seg'){h+=`<div class="row"><span class="lab">${c.label}${c.k?' '+iiHtml(c.k):''}</span><span class="seg" data-key="${c.key}">${c.opts.map(([val,lab])=>`<button data-v="${val}" aria-pressed="${s[c.key]===val}">${lab}</button>`).join('')}</span></div>`;}
+    else if(c.type==='select'){h+=`<div class="row"><span class="lab">${c.label}</span><select data-key="${c.key}">${c.opts.map(([val,lab])=>`<option value="${val}" ${s[c.key]===val?'selected':''}>${lab}</option>`).join('')}</select></div>`;}
+    else if(c.type==='toggle'){h+=`<label class="tg"><input type="checkbox" data-key="${c.key}" ${s[c.key]?'checked':''}><span>${c.label}${c.k?' '+iiHtml(c.k):''}${c.hint?`<small>${c.hint}</small>`:''}</span></label>`;}
+    else if(c.type==='html'){h+=c.html(s);}
+  });
+  h+=`<label class="tg" style="margin-top:4px"><input type="checkbox" data-key="__ann" ${S.ann?'checked':''}><span>Show annotations (callouts)</span></label>`;
+  if(v.extra)h+=v.extra(s);
+  el.innerHTML=h;
+  el.querySelectorAll('.seg').forEach(g=>g.querySelectorAll('button').forEach(b=>b.onclick=()=>{set(g.dataset.key,b.dataset.v);}));
+  el.querySelectorAll('select[data-key]').forEach(x=>x.onchange=()=>set(x.dataset.key,x.value));
+  el.querySelectorAll('input[type=checkbox][data-key]').forEach(x=>x.onchange=()=>{if(x.dataset.key==='__ann'){S.ann=x.checked;render();}else set(x.dataset.key,x.checked);});
+  if(v.bind)v.bind(el,s);
+  el.querySelectorAll('.iix').forEach(x=>x.onclick=e=>{e.preventDefault();e.stopPropagation();select(x.dataset.k,null);});
+}
+const iiHtml=k=>`<a href="#" class="iix" data-k="${k}" title="What is this?" style="text-decoration:none;color:var(--primary);font-size:11px">ⓘ</a>`;
+function set(key,val){const s=st();s[key]=val;stopAnim();S.step=-1;const v=V();if(v.onSet){v.onSet(key);renderScens();}renderControls();render();}
+function renderScens(){
+  const v=V(),el=$('#scens');if(!v.scenarios){el.innerHTML='';return;}
+  el.innerHTML=v.scenarios.map(sc=>`<button class="btn" data-s="${sc.id}" aria-pressed="${S.scen[v.id]===sc.id}"><span>${esc(sc.label)}</span>${sc.hint?`<em>${esc(sc.hint)}</em>`:''}</button>`).join('');
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{const sc=v.scenarios.find(x=>x.id===b.dataset.s);stopAnim();S.step=-1;
+    if(sc.preset){sc.preset(st());renderControls();}
+    S.scen[v.id]=sc.id;renderScens();render();});
+}
+function select(k,id){S.selK=k;S.selId=id;render();}
+/* ---------- animation ---------- */
+function stopAnim(){if(S.anim){cancelAnimationFrame(S.anim.raf);clearTimeout(S.anim.to);S.anim=null;}}
+function goTo(i,chain){
+  const tr=S.trace;if(!tr||i<0||i>=tr.hops.length)return;
+  if(i===0||RM){S.step=i;render();if(chain&&i<tr.hops.length-1)S.anim={to:setTimeout(()=>goTo(i+1,true),RM?500:380)};return;}
+  const pts=hopSegs(tr.hops)[i];const segs=[];let tot=0;
+  for(let j=1;j<pts.length;j++){const a=pts[j-1],b=pts[j];if(a==='J'||b==='J'){segs.push({jump:true,len:0,a,b});continue;}const l=Math.hypot(b[0]-a[0],b[1]-a[1]);segs.push({a,b,len:l});tot+=l;}
+  /* resolve jump endpoints */
+  for(let j=0;j<segs.length;j++)if(segs[j].jump){segs.splice(j,1);j--;}
+  const dur=Math.max(260,Math.min(1400,tot/0.42));const t0=performance.now();
+  S.anim={};
+  const tick=now=>{const k=Math.min(1,(now-t0)/dur);let d=k*tot,p=null;
+    for(const sg of segs){if(d<=sg.len||sg===segs[segs.length-1]){const f=sg.len?Math.min(1,d/sg.len):1;p=[sg.a[0]+(sg.b[0]-sg.a[0])*f,sg.a[1]+(sg.b[1]-sg.a[1])*f];break;}d-=sg.len;}
+    const pk=$('#pkt');if(pk&&p){pk.setAttribute('cx',p[0]);pk.setAttribute('cy',p[1]);}
+    if(k<1)S.anim.raf=requestAnimationFrame(tick);
+    else{S.step=i;render();if(chain&&i<tr.hops.length-1)S.anim={to:setTimeout(()=>goTo(i+1,true),420)};else S.anim=null;}};
+  S.anim.raf=requestAnimationFrame(tick);
+}
+$('#bSend').onclick=()=>{const tr=S.trace;if(!tr)return;stopAnim();if(S.step>=tr.hops.length-1||S.step<0){S.step=-1;goTo(0,true);}else goTo(S.step+1,true);};
+$('#bStep').onclick=()=>{const tr=S.trace;if(!tr)return;stopAnim();if(S.step>=tr.hops.length-1)S.step=-1;goTo(S.step+1,false);};
+$('#bReset').onclick=()=>{stopAnim();S.step=-1;render();};
+$('#trace').onclick=e=>{const li=e.target.closest('li[data-i]');if(!li)return;stopAnim();S.step=+li.dataset.i;const h=S.trace.hops[S.step];
+  const el=h.n&&document.querySelector(`#stage [data-id="${CSS.escape(h.n)}"]`);if(h.k||el){S.selK=h.k||el.dataset.k;S.selId=h.n;}render();};
+/* ---------- stage interaction ---------- */
+const tip=$('#tip');
+$('#stage').addEventListener('click',e=>{const g=e.target.closest('[data-k]');if(!g){S.selK=S.selId=null;render();return;}
+  const id=g.dataset.id||null;const v=V();if(v.onClick&&id&&v.onClick(id,st())===true){renderControls();S.step=-1;}select(g.dataset.k,id);});
+$('#stage').addEventListener('mousemove',e=>{const g=e.target.closest('[data-k]');const i=g&&INFO[g.dataset.k];if(!i){tip.style.display='none';return;}
+  tip.innerHTML=`<b>${esc(i.t)}</b><span>${esc(i.w.split(/(?<=\.)\s/)[0])}</span>`;tip.style.display='block';
+  const x=Math.min(innerWidth-320,e.clientX+14),y=Math.min(innerHeight-90,e.clientY+14);tip.style.left=x+'px';tip.style.top=y+'px';});
+$('#stage').addEventListener('mouseleave',()=>tip.style.display='none');
+/* ---------- prompt ---------- */
+function renderPrompt(){
+  const v=V(),s=st();const parts=[`I'm learning exactly how Google Cloud networking works, using an interactive simulation. I'm in the "${v.title}" view.`];
+  const ctx=v.promptCtx?v.promptCtx(s):'';if(ctx)parts.push(ctx);
+  const sc=v.scenarios&&v.scenarios.find(x=>x.id===S.scen[v.id]);
+  if(S.trace&&sc){const last=S.trace.hops[S.trace.hops.length-1];parts.push(`I traced "${sc.label}". Path: ${S.trace.hops.map(h=>h.title).join(' → ')}. Outcome: ${S.trace.ok?'delivered':'blocked at "'+last.title+'"'}. ${S.trace.summary.replace(/<[^>]+>/g,'')}`);}
+  if(S.selK&&INFO[S.selK])parts.push(`I'm examining: ${INFO[S.selK].t}.`);
+  parts.push(`Explain what is really happening at each hop, from first principles (cite Tanenbaum's Computer Networks where useful) up to Google's implementation (Andromeda, GFE, B4, Cloud Router). Point out anything in my mental model that's wrong, and give me one experiment to run in a real project to confirm it.`);
+  $('#prompt').textContent=parts.join('\n\n');
+}
+$('#bCopy').onclick=async()=>{const b=$('#bCopy');try{await navigator.clipboard.writeText($('#prompt').textContent);b.textContent='Copied!';}catch(e){const r=document.createRange();r.selectNodeContents($('#prompt'));getSelection().removeAllRanges();getSelection().addRange(r);b.textContent='Select + ⌘C';}setTimeout(()=>b.textContent='Copy',1300);};
+/* ---------- shell ---------- */
+function switchView(id){
+  if(!VIEWS.find(v=>v.id===id))id=VIEWS[0].id;stopAnim();S.view=id;S.step=-1;S.selK=S.selId=null;
+  const v=V();if(!S.scen[id]&&v.scenarios)S.scen[id]=v.scenarios[0].id;
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.v===id));
+  $('#vtitle').textContent=v.title;$('#vblurb').innerHTML=v.blurb;
+  if(location.hash.slice(1)!==id)history.replaceState(null,'','#'+id);
+  renderControls();renderScens();renderSources();render();
+}
+function boot(){
+  VIEWS.forEach(v=>{S.v[v.id]=JSON.parse(JSON.stringify(v.defaults||{}));});
+  $('#tabs').innerHTML=VIEWS.map((v,i)=>`<button class="tab" role="tab" data-v="${v.id}"><b>${i+1}</b>${esc(v.tab)}</button>`).join('');
+  $('#tabs').onclick=e=>{const t=e.target.closest('.tab');if(t)switchView(t.dataset.v);};
+  $('#lens').innerHTML=[['lens-inet','--inet','Internet'],['lens-gbb','--gbb','Google backbone'],['lens-vpc','--vpc','Your VPC'],['lens-hyb','--hyb','Hybrid'],['lens-fw','--fw','Firewall'],['lens-iam','--iam','IAM / projects']].map(([k,c,l])=>`<span data-k="${k}"><i style="background:var(${c})"></i>${l}</span>`).join('');
+  $('#lens').onclick=e=>{const s=e.target.closest('[data-k]');if(s)select(s.dataset.k,null);};
+  const cs=Object.keys(INFO).filter(k=>INFO[k].c);
+  $('#notes summary').textContent=`⚠ ${cs.length} corrections to your "Google Cloud Networking" notes`;
+  $('#notes ul').innerHTML=cs.map(k=>`<li><a data-k="${k}">${esc(INFO[k].t)}</a> · <span class="muted">${esc(INFO[k].c.split(/(?<=\.)\s/)[0])}</span></li>`).join('');
+  $('#notes ul').onclick=e=>{const a=e.target.closest('a[data-k]');if(!a)return;const vid=CORR[a.dataset.k];if(vid&&vid!==S.view)switchView(vid);select(a.dataset.k,null);};
+  addEventListener('hashchange',()=>switchView(location.hash.slice(1)));
+  switchView(location.hash.slice(1));
+}
+</script>
+<script>
+/* ================= VIEW 1 · BACKBONE (physical lens) ================= */
+(()=>{
+const REG={usw1:['us-west1','Oregon',110,190],usc1:['us-central1','Iowa',260,232],use4:['us-east4','N. Virginia',410,190],sae1:['southamerica-east1','São Paulo',440,520],
+  euw2:['europe-west2','London',580,120],euw1:['europe-west1','Belgium',735,168],afs1:['africa-south1','Johannesburg',735,560],as1:['asia-south1','Mumbai',890,330],
+  ase1:['asia-southeast1','Singapore',1000,440],ane1:['asia-northeast1','Tokyo',1100,215],aus1:['australia-southeast1','Sydney',1100,590]};
+const ZL={euw1:['b','c','d']};
+const POP={'pop-sea':['Seattle',95,95],'pop-chi':['Chicago',262,128],'pop-ash':['Ashburn',515,180],'pop-mia':['Miami',395,300],'pop-gru':['São Paulo',560,545],
+  'pop-lon':['London',575,45],'pop-fra':['Frankfurt',850,110],'pop-lis':['Lisbon',575,250],'pop-los':['Lagos',655,385],'pop-cpt':['Cape Town',640,640],
+  'pop-jnb':['Johannesburg',860,575],'pop-bom':['Mumbai',905,248],'pop-sin':['Singapore',1000,520],'pop-tyo':['Tokyo',1150,120],'pop-syd':['Sydney',990,640]};
+const XY=id=>REG[id]?[REG[id][2],REG[id][3]]:[POP[id][1],POP[id][2]];
+/* edges: [a,b,type,name,bend] */
+const E=[['usw1','usc1','t'],['usc1','use4','t'],['usw1','pop-sea','t'],['usc1','pop-chi','t'],['pop-chi','use4','t'],['use4','pop-ash','t'],['use4','pop-mia','t'],
+  ['euw2','euw1','t'],['euw2','pop-lon','t'],['euw1','pop-fra','t'],['euw1','pop-lis','t'],['afs1','pop-jnb','t'],['afs1','pop-cpt','t'],['as1','pop-bom','t'],
+  ['ase1','pop-sin','t'],['ane1','pop-tyo','t'],['aus1','pop-syd','t'],['sae1','pop-gru','t'],
+  ['pop-ash','euw1','s','Dunant',-40],['pop-ash','euw2','s','Grace Hopper',-30],['pop-mia','sae1','s','Firmina',30],['pop-lis','pop-los','s','Equiano',30],['pop-los','pop-cpt','s','Equiano',40],
+  ['pop-fra','as1','s','Blue-Raman',-25],['as1','ase1','s','subsea',-10],['ase1','ane1','s','Apricot',25],['ase1','aus1','s','INDIGO',-25],['usw1','ane1','w','Topaz']];
+const USERS={cpt:['Cape Town','pop-cpt',[545,632],[470,662]],lon:['London','pop-lon',[470,55],[390,30]],tyo:['Tokyo','pop-tyo',[1080,52],[1010,25]],sao:['São Paulo','pop-gru',[385,610],[300,645]]};
+const NEARPOP={usc1:'pop-chi',euw1:'pop-fra',afs1:'pop-jnb',ane1:'pop-tyo',aus1:'pop-syd'};
+function edgePts(e){const a=XY(e[0]),b=XY(e[1]);if(e[2]==='w')return [a,[0,150],'J',[1200,150],b];if(e[2]==='s')return curve(a,b,e[4]||20);return [a,b];}
+function plen(p){let l=0;for(let i=1;i<p.length;i++){if(p[i]==='J'||p[i-1]==='J')continue;l+=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);}return l;}
+function dijkstra(src,dst){const nodes=[...Object.keys(REG),...Object.keys(POP)];const d={},prev={},q=new Set(nodes);nodes.forEach(n=>d[n]=Infinity);d[src]=0;
+  while(q.size){let u=null;q.forEach(n=>{if(u===null||d[n]<d[u])u=n;});q.delete(u);if(u===dst)break;
+    E.forEach(e=>{let v=null,pts=edgePts(e);if(e[0]===u)v=e[1];else if(e[1]===u){v=e[0];pts=pts.slice().reverse();}if(!v||!q.has(v))return;const w=e[2]==='w'?520:plen(pts);if(d[u]+w<d[v]){d[v]=d[u]+w;prev[v]={u,e,pts};}});}
+  const path=[];let c=dst;while(prev[c]){path.unshift({n:c,...prev[c]});c=prev[c].u;}return path;}
+function zoneOf(s,r){const zl=ZL[r]||['a','b','c'];return r+'-'+(s.failZone?zl[1]:zl[0]);}
+function bbHops(path,layer){return path.map(p=>{const isR=!!REG[p.n];const nm=p.e[3]||'terrestrial fiber';return H(p.n,layer,isR?`${REG[p.n][0]} (${REG[p.n][1]})`:`${POP[p.n][0]} PoP (transit)`,
+  `Over <b>${nm}</b>${p.e[2]==='s'||p.e[2]==='w'?' subsea cable':''}. Still on Google's private backbone. SDN (B2/B4) traffic engineering picks this path.`,{via:p.pts.slice(1,-1)});});}
+
+VIEWS.push({id:'backbone',tab:'Backbone',title:'1 · Google\'s global backbone (physical)',
+  blurb:'The infrastructure that already exists before you create anything: regions with zones, edge PoPs where Google meets ISPs, GFEs and CDN caches at those PoPs, and the private fiber and subsea cables between them.',
+  intro:'Three networks meet here: the <b class="c-inet">Internet</b> (your ISP), Google\'s <b class="c-gbb">backbone</b> (everything blue), and later your <b class="c-vpc">VPC</b>, which is virtual and rides on the blue network. Trace "Browse an app" with Premium tier, then again with Standard, and compare where the packet enters Google. The side panel shows which resources are <b>replicated across zones automatically</b>, and which are not.',
+  defaults:{user:'cpt',dst:'usc1',tier:'premium',cdn:'off',failZone:false,cables:true},
+  controls:[
+    {type:'seg',key:'user',label:'User in',opts:Object.entries(USERS).map(([k,v])=>[k,v[0]])},
+    {type:'select',key:'dst',label:'App runs in',opts:Object.keys(NEARPOP).map(k=>[k,REG[k][0]+' · '+REG[k][1]])},
+    {type:'seg',key:'tier',label:'Network tier',k:'tier-premium',opts:[['premium','Premium'],['standard','Standard']]},
+    {type:'seg',key:'cdn',label:'Cloud CDN',k:'cdn',opts:[['off','Off'],['miss','On · miss'],['hit','On · hit']]},
+    {type:'toggle',key:'failZone',label:'First zone of the app\'s region is down',k:'zone',hint:'The load balancer health-checks backends and sends traffic to a healthy zone.'},
+    {type:'toggle',key:'cables',label:'Label subsea cables',k:'subsea'}],
+  extra:s=>{const R=[['VM instance','zonal','no','Spread copies with a regional managed instance group',0],['Zonal Persistent Disk / Hyperdisk','zonal','no','Snapshot it, or use a regional disk',1],['Local SSD','zonal','no','Ephemeral: lost if the host or zone fails',0],['Bigtable (one cluster)','zonal','no','Add clusters for multi-cluster replication',1],
+      ['Regional PD / Hyperdisk Balanced HA','regional','opt-in','Synchronous copy in 2 zones',1],['Regional MIG / regional GKE cluster','regional','opt-in','Instances spread across zones',0],['Cloud SQL (HA config)','regional','opt-in','Standby in another zone, automatic failover',0],
+      ['Cloud Storage regional bucket','regional','auto','Redundant across ≥2 zones',1],['Cloud Storage dual / multi-region','multi-region','auto','Redundant across regions',1],['Spanner (regional config)','regional','auto','Replicas in 3 zones',0],['BigQuery dataset','regional / multi','auto','Stored in 2 zones (or more)',0],['Cloud Run / App Engine / Cloud Functions','regional','auto','Google runs instances across zones',0],['Global external LB (GFE)','global','auto','Health checks route around a failed zone',0]];
+    const col={no:'var(--bad)',['opt-in']:'var(--gold)',auto:'var(--ok)'};
+    return `<details style="margin-top:6px" open><summary class="muted" style="font-size:12px;cursor:pointer">Replicated across zones automatically? ${iiHtml('replication')}</summary>
+    <p style="font-size:12px;margin:6px 0" class="muted">Rule of thumb: what <b>you</b> put in a zone stays in that zone. Regional managed services copy across zones for you.${s.failZone?' <b style="color:var(--bad)">With the zone down, every red row there is unavailable.</b>':' Tick "First zone … is down" to see what is lost.'}</p>
+    <table class="cmp"><tr><th>Resource</th><th>Scope</th><th>Across zones</th></tr>${R.map(([r,sc,x,n,v])=>`<tr style="${s.failZone&&x==='no'?'background:var(--bad-bg)':''}"><td>${r}${v?' <span title="Checked against Google docs this session" style="color:var(--gbb)">✓</span>':''}<br><span class="dim">${n}</span></td><td>${sc}</td><td style="color:${col[x]};font-weight:600">${x==='no'?(s.failZone?'✕ down':'✕ no'):x==='auto'?'✓ auto':'◐ opt-in'}</td></tr>`).join('')}</table>
+    <p class="dim" style="font-size:11px;margin:6px 0 0">Blue ✓ = checked against Google docs this session. Other rows come from Claude's knowledge. Verify via the docs links below.</p></details>`;},
+  scenarios:[
+    {id:'web',label:'Browse an app (HTTPS via load balancer)',hint:'device → app',run:s=>{
+      const u=USERS[s.user],up=u[1],dst=s.dst,hops=[H('dev','inet','Your laptop',`DNS resolves app.example.com → ${s.tier==='premium'?'<b>34.120.8.9</b>, one global anycast VIP announced from every PoP':'<b>35.208.1.7</b>, a regional Standard tier IP announced only near '+REG[dst][0]}.`),
+        H('isp','inet','Your ISP',`Last mile, then the ISP's routers. BGP picks the best path to the destination prefix.`)];
+      if(s.tier==='premium'){
+        hops.push(H(up,'gbb',`${POP[up][0]} PoP · enters Google`,`Google's prefix is announced here, so the ISP hands off at the <b>nearest PoP</b>. From now on Google carries the packet (cold-potato).`,{k:'tier-premium'}));
+        hops.push(H('gfe','gbb','GFE · TLS terminated at the edge','The GFE ends TCP and TLS here, ~ms from the user. It applies Cloud Armor, reads the URL map and picks the closest healthy backend that has capacity.'));
+        if(s.cdn!=='off')hops.push(H('cdnn','gbb',s.cdn==='hit'?'Cloud CDN · cache HIT':'Cloud CDN · cache miss',s.cdn==='hit'?'The object is cached at this PoP. The response comes straight from here and the backbone and your region never see the request.':'Not cached yet. The GFE forwards to the origin and the response gets cached here on the way back.'));
+        if(s.cdn==='hit')return {hops,ok:true,summary:`Served from the ${POP[up][0]} edge cache. The request never left the PoP.`};
+        const path=dijkstra(up,dst);hops.push(...bbHops(path,'gbb'));
+      }else{
+        const pp=NEARPOP[dst];const a=hopPosXY(up),b=XY(pp);
+        hops.push(H('transit','inet','Public Internet transit',`Standard tier IPs are announced only near ${REG[dst][0]}, so the packet crosses <b>third-party transit networks</b>. Each one hands it off early (hot-potato). Latency and jitter are outside Google's control.`,{k:'transit'}));
+        hops.push(H(pp,'gbb',`${POP[pp][0]} PoP · enters Google late`,`It finally enters Google's network next to the region. ${s.cdn!=='off'?'<b>Cloud CDN is unavailable in Standard tier</b>, so the CDN setting is ignored. ':''}A regional load balancer (or the VM's external IP) handles it.`,{k:'tier-standard'}));
+        const path=dijkstra(pp,dst);hops.push(...bbHops(path,'gbb'));
+      }
+      const z=zoneOf(s,dst),zn=REG[dst][0]+'-'+z.split('-').pop();hops.push(H(z,'vpc',`Backend VM in ${zn}`,`${s.failZone?'The first zone is failing health checks, so the load balancer sends the request to <b>'+zn+'</b>. That works only because a backend also runs there: a VM or zonal disk in the failed zone is simply unavailable, since zonal resources are not copied automatically. ':''}A ${s.tier==='premium'?'new TCP connection from the GFE (source 35.191.0.0/16 / 130.211.0.0/22)':'connection'} arrives at the VM. Now we are inside your VPC (view 3).`));
+      return {hops,ok:true,summary:s.tier==='premium'?`Premium: on Google's network from ${POP[up][0]} onward, over ${hops.filter(x=>x.via).length} backbone hops.`:`Standard: public Internet until the ${POP[NEARPOP[dst]][0]} PoP, which is cheaper but less predictable.`};}},
+    {id:'video',label:'Stream a video (Google Global Cache)',hint:'device → ISP cache',run:s=>({hops:[H('dev','inet','Your laptop','You request a YouTube or Media CDN segment. DNS returns an address of a cache inside your own ISP.'),H('isp','inet','Your ISP','The request stays inside the ISP.'),H('ggcn','inet','GGC node inside the ISP','A Google Global Cache server hosted by the ISP serves the bytes. The request never reaches a PoP or Google\'s backbone.',{k:'ggc'})],ok:true,summary:'Served from inside the ISP. This is a deeper tier than Cloud CDN, which lives at the PoPs.'})},
+    {id:'r2r',label:'VM → VM in another region (internal IP)',hint:'region → region',run:s=>{const src='usc1',dst=s.dst==='usc1'?'euw1':s.dst;const path=dijkstra(src,dst);
+      const hops=[H(src+'-a','vpc','VM in us-central1-a (10.10.0.2)','It sends to 10.20.0.2 in another region of the <b>same global VPC</b>. No VPN, peering or public IP is involved.',{k:'b4'}),H(src,'gbb','Leaves the us-central1 data center','Andromeda encapsulates the packet and hands it to the backbone (B4, the inter-DC WAN).',{k:'b4'}),...bbHops(path,'gbb'),H(zoneOf({failZone:false},dst),'vpc',`VM in ${REG[dst][0]}-${zoneOf({failZone:false},dst).split('-').pop()}`,'Decapsulated on the destination host and delivered to the VM\'s vNIC, after the ingress firewall check.')];
+      return {hops,ok:true,summary:'Never touches the Internet. This is what "a VPC is global" means physically.'};}}],
+  draw(s){
+    let o='';
+    /* continents (faint) */
+    [['NORTH AMERICA',70,330],['SOUTH AMERICA',150,470],['EUROPE',640,85],['AFRICA',600,470],['ASIA',960,170],['OCEANIA',960,600]].forEach(([t,x,y])=>o+=T(x,y,t,'big'));
+    /* edges */
+    E.forEach(e=>{const p=edgePts(e);o+=`<path class="${e[2]==='t'?'terr':'sub'}" d="${polyStr(p)}" data-k="${e[2]==='t'?'backbone':'subsea'}" style="cursor:pointer"/>`;
+      if(s.cables&&e[3]&&e[2]!=='t'){let m;if(e[2]==='w'){o+=T(8,142,'← Topaz (Pacific)','cbl')+T(1192,142,'Topaz (Pacific) →','cbl','end');}else{m=p[Math.floor(p.length/2)];o+=T(m[0]+4,m[1]-4,e[3],'cbl');}}});
+    /* PoPs */
+    const u=USERS[s.user];
+    Object.entries(POP).forEach(([id,[c,x,y]])=>{P(id,x,y);const on=id===u[1]||(s.tier==='standard'&&id===NEARPOP[s.dst]);const r=10;const pts=[0,1,2,3,4,5].map(i=>[x+r*Math.cos(Math.PI/3*i+Math.PI/6),y+r*Math.sin(Math.PI/3*i+Math.PI/6)].map(v=>v.toFixed(1)).join(',')).join(' ');
+      o+=`<g class="nd pop ${on?'on':''}" data-id="${id}" data-k="pop"><polygon points="${pts}"/>${T(x+13,y+4,c,'sm')}</g>`;});
+    /* regions */
+    Object.entries(REG).forEach(([id,[nm,city,x,y]])=>{const w=140,h=50;P(id,x,y);const isDst=id===s.dst;
+      o+=`<g class="nd reg" data-id="${id}" data-k="region"><rect x="${x-w/2}" y="${y-h/2}" width="${w}" height="${h}" rx="8" style="${isDst?'fill:var(--gbb-bg2)':''}"/>${T(x-w/2+8,y-h/2+14,nm,'lbl mono b')}${T(x-w/2+8,y-h/2+26,city,'sm')}</g>`;
+      (ZL[id]||['a','b','c']).forEach((z,i)=>{const zx=x-w/2+16+i*21,zy=y+13;P(id+'-'+z,zx,zy);const down=s.failZone&&isDst&&i===0;
+        o+=`<g class="nd zone ${down?'down':''}" data-id="${id}-${z}" data-k="zone"><circle cx="${zx}" cy="${zy}" r="8"/><text x="${zx}" y="${zy+3}" class="zt">${z}</text></g>`;});
+      o+=ii(x+w/2-1,y-h/2-1,'region');});
+    /* user side */
+    const [ux,uy]=u[2],[dx,dy]=u[3],pp=XY(u[1]);
+    o+=`<path class="inetl" d="M${dx},${dy}L${ux},${uy}L${pp[0]},${pp[1]}"/>`;
+    o+=cloud('isp',ux,uy,44,20,'Your ISP','isp');
+    P('ggcn',ux+30,uy+(uy<100?24:-24));o+=`<g class="nd" data-id="ggcn" data-k="ggc"><rect x="${ux+14}" y="${N.ggcn.y-8}" width="34" height="16" rx="3" style="fill:var(--inet-bg);stroke:var(--inet)"/>${T(ux+31,N.ggcn.y+4,'GGC','xs','middle').replace('class="xs"','class="xs" style="fill:var(--inet-ink)"')}</g>`;
+    P('dev',dx,dy);o+=`<g class="nd dev" data-id="dev" data-k="device"><rect x="${dx-24}" y="${dy-11}" width="48" height="22" rx="4"/>${T(dx,dy+4,'laptop','sm','middle')}</g>`;
+    /* GFE + CDN on the entry PoP (premium) */
+    if(s.tier==='premium'){const gx=pp[0]+(pp[0]>1050?-62:24),gy=pp[1]+(pp[1]>600?-30:22);P('gfe',gx,gy);P('cdnn',gx+40,gy);
+      o+=`<line class="gl" x1="${pp[0]}" y1="${pp[1]}" x2="${gx}" y2="${gy}"/><g class="nd gbox" data-id="gfe" data-k="gfe"><rect x="${gx-18}" y="${gy-9}" width="36" height="18" rx="3"/>${T(gx,gy+4,'GFE','xs b','middle').replace('class="xs b"','class="xs b" style="fill:var(--gbb-ink)"')}</g>`;
+      o+=`<g class="nd gbox" data-id="cdnn" data-k="cdn"><rect x="${gx+22}" y="${gy-9}" width="36" height="18" rx="3" style="${s.cdn==='off'?'opacity:.4':''}"/>${T(gx+40,gy+4,'CDN','xs b','middle').replace('class="xs b"','class="xs b" style="fill:var(--gbb-ink)"')}</g>`;}
+    else{const a=XY(u[1]),b=XY(NEARPOP[s.dst]);const mx=(N.isp.x+b[0])/2,my=(N.isp.y+b[1])/2+40;
+      o+=`<path class="inetl" style="stroke-dasharray:4 4" d="M${N.isp.x},${N.isp.y}Q${mx},${my+30} ${b[0]},${b[1]}"/>`;o+=cloud('transit',mx,my,70,22,'Public Internet','transit','transit ISPs · hot-potato');}
+    /* callouts */
+    o+=callout(505,180,470,95,'Edge PoP: Google meets ISPs\n(200+ worldwide)');
+    o+=callout(860,355,795,420,'Region (3+ zones);\n43 regions / 130 zones');
+    o+=callout(620,460,700,470,'Google subsea cable\n(Equiano → South Africa)');
+    o+=callout(185,210,150,290,'Private backbone:\nnot part of the Internet');
+    return o;},
+  legend:()=>`<g class="legend" transform="translate(16,600)"><rect x="-6" y="-14" width="210" height="76" rx="6" style="fill:var(--surface);stroke:var(--line)"/>
+    <line class="terr" x1="0" y1="0" x2="26" y2="0"/><text x="34" y="3">terrestrial backbone fiber</text>
+    <line class="sub" x1="0" y1="16" x2="26" y2="16"/><text x="34" y="19">subsea cable (schematic)</text>
+    <line class="inetl" x1="0" y1="32" x2="26" y2="32"/><text x="34" y="35">public Internet / ISP</text>
+    <polygon points="13,40 21,44 21,52 13,56 5,52 5,44" style="fill:var(--surface);stroke:var(--gbb)"/><text x="34" y="51">edge PoP · ▭ region with zones</text></g>`,
+  promptCtx:s=>`Settings: user in ${USERS[s.user][0]}, app in ${REG[s.dst][0]}, ${s.tier} tier, Cloud CDN ${s.cdn}${s.failZone?', first zone of the app region down':''}.`
+});
+function hopPosXY(id){return XY(id);}
+})();
+
+/* ================= VIEW 2 · HYBRID EDGE ================= */
+(()=>{
+const VM=[1075,420];
+VIEWS.push({id:'hybrid',tab:'Hybrid connectivity',title:'2 · Hybrid connectivity: Interconnect, VPN, peering',
+  blurb:'How networks outside Google join it. Each lane is one product. Purple dashed lines are BGP sessions (control plane). Solid lines carry data. Note that data never passes through Cloud Router.',
+  intro:'Lanes from top to bottom: <b>Direct / Carrier Peering</b> (Google public services only), <b>Dedicated Interconnect</b>, <b>Partner Interconnect</b>, <b>HA VPN</b>, <b>Cross-Cloud Interconnect</b>. Send the same on-prem → VM packet down each lane, then fail things with the toggles.',
+  defaults:{failEad1:false,failIc:false,vpnBackup:true,macsec:false,failTun0:false},
+  controls:[
+    {type:'toggle',key:'failEad1',label:'Edge Availability Domain 1 down (maintenance)',k:'ead'},
+    {type:'toggle',key:'failIc',label:'Both Dedicated Interconnect circuits down',k:'dedicated'},
+    {type:'toggle',key:'vpnBackup',label:'HA VPN configured as backup path (lower BGP priority)',k:'havpn'},
+    {type:'toggle',key:'failTun0',label:'HA VPN tunnel on interface 0 down',k:'havpn'},
+    {type:'toggle',key:'macsec',label:'MACsec on the Dedicated Interconnect',k:'macsec'}],
+  extra:()=>`<details style="margin-top:6px" open><summary class="muted" style="font-size:12px;cursor:pointer">Options at a glance</summary><table class="cmp"><tr><th>Option</th><th>Reaches</th><th>Capacity</th><th>SLA</th><th>Encrypted</th></tr>
+    <tr><td>Dedicated IC</td><td>VPC (private IPs)</td><td>10/100/400G circuits</td><td>99.9 / 99.99%</td><td>No (MACsec opt.)</td></tr>
+    <tr><td>Partner IC</td><td>VPC</td><td>50M–50G</td><td>99.9 / 99.99%</td><td>No</td></tr>
+    <tr><td>Cross-Cloud IC</td><td>VPC ↔ other cloud</td><td>10/100G ports</td><td>99.9 / 99.99%</td><td>No (MACsec opt.)</td></tr>
+    <tr><td>HA VPN</td><td>VPC</td><td>~3G per tunnel</td><td>99.99%</td><td>Yes, IPsec</td></tr>
+    <tr><td>Direct Peering</td><td>Google public IPs</td><td>10/100G</td><td>none</td><td>App-level</td></tr>
+    <tr><td>Carrier Peering</td><td>Google public IPs</td><td>carrier</td><td>carrier's</td><td>App-level</td></tr></table></details>`,
+  scenarios:[
+    {id:'ded',label:'On-prem → VM via Dedicated Interconnect',hint:'192.168.10.5 → 10.10.0.5',run:s=>{
+      const hops=[H('srv','hyb','On-prem server 192.168.10.5','Sends to 10.10.0.5. Its default gateway is the edge router.'),H('rtr','hyb','Your edge router (AS 65001)','Its BGP table has <b>10.10.0.0/24</b>, learned from Cloud Router over the Interconnect, preferred by its higher local-pref.',{k:'cust-router'})];
+      if(s.failIc){if(!s.vpnBackup)return {hops:[...hops,H('crcolo','hyb','Your router in the colo','Both circuits are down, so the BGP sessions dropped and the route to 10.10.0.0/24 was withdrawn. There is no other path.',{k:'colo'})],ok:false,summary:'No backup path. BGP withdrew the only route. Add HA VPN as a backup, or a second Interconnect in another metro.'};
+        return vpnPath(s,hops,'Both Interconnect circuits are down. BGP withdrew those routes, so the <b>backup HA VPN route</b> (lower priority / higher MED) takes over automatically.');}
+      const g=s.failEad1?'ger2':'ger1',a=s.failEad1?'att2':'att1';
+      hops.push(H('crcolo','hyb','Your router in the colocation facility','You extend your network into the colo over your own circuit. It sits next to Google\'s equipment in the meet-me room.',{k:'colo'}));
+      hops.push(H(g,'gbb',`Google edge router · EAD${s.failEad1?2:1}`,`Cross-connect fiber: a 10/100/400G port, bundled with LACP. ${s.failEad1?'EAD1 is in maintenance, so traffic uses the second connection in <b>EAD2</b>. This is why the SLA requires both.':''} ${s.macsec?'<b>MACsec</b> encrypts this L2 hop.':'<b>Not encrypted by default.</b> It is private, but plaintext.'}`,{k:'ead'}));
+      hops.push(H(a,'hyb',`VLAN attachment ${s.failEad1?2:1} (802.1Q)`,'The VLAN tag selects this attachment, which belongs to one VPC and region. The packet now crosses Google\'s backbone into us-central1.',{k:'vlan-att'}));
+      hops.push(H('vm','vpc','VM 10.10.0.5','Delivered over the VPC dataplane after the ingress firewall check (it must allow 192.168.10.0/24). <b>Cloud Router was never in the path.</b> It only programmed the route back to 192.168.10.0/24.',{via:[[1000,s.failEad1?268:215]]}));
+      return {hops,ok:true,summary:`Private, deterministic path through EAD${s.failEad1?2:1}.${s.macsec?' MACsec-encrypted.':' Unencrypted unless you add MACsec or HA VPN over Interconnect.'}`};}},
+    {id:'par',label:'On-prem → VM via Partner Interconnect',hint:'through a provider',run:s=>({hops:[H('srv','hyb','On-prem server 192.168.10.5','Sends to 10.10.0.5.'),H('rtr','hyb','Your edge router','With a Layer-2 partner you BGP with Cloud Router yourself. With Layer 3, the provider does it.',{k:'cust-router'}),
+      H('provnet','hyb','Service provider network','The packet rides the partner\'s MPLS or Ethernet network. You have no presence in a Google colo.',{k:'provider-net'}),H('ppcolo','hyb','Provider router in colo','The provider already has high-capacity links into Google. You buy a slice (50 Mbps–50 Gbps).',{k:'partner'}),
+      H('ger3','gbb','Google edge router','The provider\'s port onto Google\'s edge.',{k:'ead'}),H('att3','hyb','Partner VLAN attachment','You create it in GCP, get a pairing key, and hand the key to the provider. Cloud Router ASN must be 16550.',{k:'vlan-att'}),H('vm','vpc','VM 10.10.0.5','Delivered.',{via:[[1000,395]]})],ok:true,summary:'Private connectivity without a colo presence. The SLA depends on redundant attachments, just like Dedicated.'})},
+    {id:'vpn',label:'On-prem → VM via HA VPN',hint:'IPsec over Internet',run:s=>vpnPath(s,[H('srv','hyb','On-prem server 192.168.10.5','Sends to 10.10.0.5.'),H('rtr','hyb','Your edge router','The route to 10.10.0.0/24 points at the IPsec tunnels, learned by BGP inside the tunnels.',{k:'cust-router'})],'')},
+    {id:'dp',label:'Office → Workspace via Direct Peering',hint:'public services',run:s=>({hops:[H('srv','hyb','Office host','Opens mail.google.com or storage.googleapis.com, which resolve to <b>Google public IPs</b>.',{k:'onprem'}),H('pubrtr','hyb','Your Internet edge router (public ASN)','It has a BGP session directly with Google AS15169 and learns Google\'s public prefixes.',{k:'direct-peering'}),
+      H('ixp','inet','IXP / private interconnect','A physical peering at a Google edge location.',{k:'ixp'}),H('gedge','gbb','Google peering edge','The packet enters Google next to you, not via a transit ISP.',{k:'google-edge'}),H('gsvc','gbb','Google public services','Delivered to Workspace or APIs. <b>Your VPC is not reachable this way</b>, because Direct Peering carries no private VPC routes.')],ok:true,summary:'Good for heavy Workspace or API traffic. Not a way into your VPC. Use Interconnect or VPN for that.'})},
+    {id:'cp',label:'Office → Google APIs via Carrier Peering',hint:'via a carrier',run:s=>({hops:[H('srv','hyb','Office host','Requests a Google public service.',{k:'onprem'}),H('pubrtr','hyb','Your Internet edge router','Your carrier is your upstream.',{k:'cust-router'}),H('carrier','inet','Carrier network','The carrier peers with Google at high capacity, so traffic reaches Google without crossing the wider Internet.',{k:'carrier'}),H('gedge','gbb','Google peering edge','The carrier\'s peering with Google.',{k:'google-edge'}),H('gsvc','gbb','Google public services','Delivered. Same reach as Direct Peering, and the SLA comes from the carrier.')],ok:true,summary:'Public services only, through a carrier. No private VPC access.'})},
+    {id:'pga',label:'On-prem → Cloud Storage privately',hint:'PGA for hybrid',run:s=>({hops:[H('srv','hyb','On-prem server','On-prem DNS maps *.googleapis.com to <b>private.googleapis.com</b> (199.36.153.8/30).',{k:'pga-hybrid'}),H('rtr','hyb','Your edge router','Cloud Router\'s <b>custom advertisement</b> includes 199.36.153.8/30, so this route points into the Interconnect.',{k:'cust-router'}),
+      H('crcolo','hyb','Your router in the colo','',{k:'colo'}),H(s.failEad1?'ger2':'ger1','gbb','Google edge router','',{k:'ead'}),H(s.failEad1?'att2':'att1','hyb','VLAN attachment','Enters the VPC\'s network context.',{k:'vlan-att'}),H('pga','gbb','private.googleapis.com','Cloud Storage is served privately. The request never touches the public Internet, and you can lock the API down with VPC Service Controls (use restricted.googleapis.com).',{k:'pga-hybrid'})],ok:true,summary:'Hybrid Private Google Access: advertise the VIP range, and fix DNS on-prem.'})},
+    {id:'cci',label:'AWS VPC → GCP VM via Cross-Cloud Interconnect',hint:'cloud ↔ cloud',run:s=>({hops:[H('awsr','hyb','AWS VPC host 172.31.4.10','Uses AWS Direct Connect on the AWS side.',{k:'aws'}),H('ccport','hyb','Shared colo · Google-provisioned port','Google orders and manages the physical cross-connect to AWS\'s port. You do not need your own router in the colo.',{k:'cci'}),
+      H('ger4','gbb','Google edge router','',{k:'ead'}),H('att4','hyb','VLAN attachment (CCI)','The same constructs as Dedicated: VLAN attachment and Cloud Router BGP with the AWS virtual gateway.',{k:'vlan-att'}),H('vm','vpc','VM 10.10.0.5','Delivered over a private, dedicated path between the clouds.',{via:[[1000,628]]})],ok:true,summary:'Multicloud without hairpinning through on-prem or the Internet.'})}],
+  draw(s){let o='';
+    o+=frame(18,40,215,535,'Your premises','onprem','var(--hyb)','192.168.10.0/24 · AS 65001');
+    o+=frame(250,175,325,285,'Colocation facility','colo','var(--hyb)','meet-me room');
+    o+=`<rect x="595" y="40" width="110" height="630" rx="8" style="fill:var(--gbb-bg);stroke:var(--gbb-line)"/>`+T(650,58,'GOOGLE EDGE','hd','middle').replace('class="hd"','class="hd" style="fill:var(--gbb)"')+T(650,72,'+ backbone','sm','middle')+ii(705,40,'google-edge');
+    o+=frame(725,40,455,125,'Google public services','gsvc','var(--gbb)','Workspace · googleapis.com');
+    o+=frame(725,180,455,490,'Region us-central1 · VPC prod-vpc (project net-prod)','vpc','var(--vpc)','');
+    o+=frame(18,588,215,82,'Other cloud','aws','var(--hyb)','AWS VPC 172.31.0.0/16');
+    /* data lines */
+    const dl=(pts,cls,down)=>L(pts,cls+(down?' down-l':''));
+    o+=dl([[175,100],[400,88],[650,100]],'inetl');o+=dl([[175,100],[400,150],[650,100]],'inetl');o+=dl([[650,100],[850,105]],'gl');
+    o+=dl([[175,300],[320,240]],'hl',s.failIc);o+=dl([[320,240],[490,215]],'hl',s.failIc||s.failEad1);o+=dl([[320,240],[490,268]],'hl',s.failIc);
+    o+=dl([[490,215],[790,215]],'gl',s.failIc||s.failEad1);o+=dl([[490,268],[790,268]],'gl',s.failIc);
+    o+=dl([[175,300],[265,395],[400,395],[490,395]],'hl');o+=dl([[490,395],[790,395]],'gl');
+    o+=dl([[175,515],[420,515],[650,515]],'inetl');o+=dl([[650,515],[790,495]],'gl',s.failTun0);o+=dl([[650,515],[790,540]],'gl');
+    o+=dl([[175,628],[400,628],[500,628],[790,628]],'hl');
+    o+=dl([[175,300],[175,515]],'dl');o+=dl([[75,360],[175,300]],'dl');o+=dl([[175,300],[175,100]],'dl');
+    [[790,215],[790,268],[790,395],[790,495],[790,540],[790,628]].forEach(p=>o+=L([p,[1000,p[1]],VM],'vl'));
+    o+=L([[790,215],[880,150],[1060,105]],'vl');
+    /* BGP sessions */
+    [[790,215],[790,268],[790,395],[790,495],[790,540],[790,628]].forEach(p=>o+=L([p,[920,440]],'bgp'));
+    /* nodes */
+    o+=box('srv',35,345,80,32,'Server','onprem','hbox','192.168.10.5');
+    o+=box('rtr',128,285,95,32,'Edge router','cust-router','hbox','AS 65001');
+    o+=box('pubrtr',128,85,95,32,'Internet router','direct-peering','hbox','public ASN');
+    o+=box('vpngw',128,500,95,32,'VPN gateway','vpn-peer','hbox','203.0.113.10');
+    o+=box('awsr',128,612,95,32,'AWS host','aws','hbox','172.31.4.10');
+    o+=box('ixp',350,72,100,30,'IXP / PNI','ixp','ebox','',{center:true});
+    o+=box('carrier',350,135,100,30,'Carrier','carrier','ebox','',{center:true});
+    o+=box('crcolo',270,224,100,32,'Your colo router','colo','hbox','cross-connect');
+    o+=box('ger1',445,200,92,30,'Google edge','ead','gbox','EAD 1');
+    o+=box('ger2',445,253,92,30,'Google edge','ead','gbox','EAD 2');
+    if(s.macsec)o+=T(420,300,'🔒 MACsec on this hop','sm','middle');
+    o+=cloud('provnet',265,395,46,20,'Provider','provider-net','MPLS / L2');
+    o+=box('ppcolo',345,380,100,30,'Partner router','partner','hbox','',{center:true});
+    o+=box('ger3',445,380,92,30,'Google edge','ead','gbox','partner port');
+    o+=cloud('inet',420,515,80,24,'Public Internet','internet','IPsec ESP (encrypted)');
+    o+=box('ccport',300,612,110,32,'Google CCI port','cci','hbox','in shared colo');
+    o+=box('ger4',445,612,92,30,'Google edge','ead','gbox','');
+    o+=box('gedge',610,85,80,30,'Peering','google-edge','gbox','AS15169');P('gedge',650,100);
+    P('gedgev',650,515);o+=`<g class="nd gbox" data-id="gedgev" data-k="google-edge"><rect x="612" y="500" width="76" height="30" rx="6"/>${T(650,519,'VPN edge','lbl b','middle')}</g>`;
+    o+=box('gsvc',775,88,150,34,'Workspace / APIs','gsvc','gbox','public IPs');
+    o+=box('pga',960,88,200,34,'private.googleapis.com','pga-hybrid','gbox','199.36.153.8/30');
+    const att=(id,y,lab,sub)=>box(id,745,y-15,90,30,lab,'vlan-att','hbox',sub);
+    o+=att('att1',215,'VLAN att 1','169.254.10.1/29');o+=att('att2',268,'VLAN att 2','169.254.11.1/29');o+=att('att3',395,'VLAN att P','ASN 16550');
+    o+=box('hv0',745,480,90,30,'HA VPN if0','havpn','hbox','34.157.1.10');o+=box('hv1',745,525,90,30,'HA VPN if1','havpn','hbox','34.157.2.10');
+    o+=att('att4',628,'VLAN att CCI','');
+    o+=box('cr',870,425,110,34,'Cloud Router','cloud-router','hbox','ASN 64512 · BGP only');
+    o+=`<rect class="vbox" x="1000" y="250" width="165" height="350" rx="8" style="fill:var(--vpc-bg);stroke:var(--vpc)"/>`+T(1010,268,'subnet app · 10.10.0.0/24','sm mono')+ii(1155,262,'subnet');
+    o+=vm('vm',VM[0],VM[1],'VM','10.10.0.5');
+    /* callouts */
+    o+=callout(925,459,885,575,'Control plane only:\nexchanges routes, never\nforwards a packet');
+    o+=callout(490,232,560,320,'Two EADs: needed for\nthe 99.9% SLA');
+    o+=callout(420,500,330,470,'Only outer public IPs\nvisible on the Internet');
+    o+=callout(850,122,860,145,'Direct/Carrier peering ends here: no private path into the VPC');
+    return o;},
+  legend:()=>`<g class="legend" transform="translate(745,690)"></g>`,
+  promptCtx:s=>{const a=[];if(s.failEad1)a.push('EAD1 down');if(s.failIc)a.push('both Dedicated Interconnect circuits down');if(!s.vpnBackup)a.push('no HA VPN backup');if(s.failTun0)a.push('HA VPN tunnel 0 down');if(s.macsec)a.push('MACsec on');return a.length?'Failure/config settings: '+a.join(', ')+'.':'';}
+});
+function vpnPath(s,hops,why){const i=s.failTun0?'hv1':'hv0';hops.push(H('vpngw','hyb','Your VPN gateway (peer)',`${why?why+' ':''}It encrypts the packet with <b>IPsec ESP</b>. Inner header 192.168.10.5 → 10.10.0.5; outer header 203.0.113.10 → ${s.failTun0?'34.157.2.10 (interface 1, because tunnel 0 is down)':'34.157.1.10 (interface 0)'}.`,{k:'vpn-peer'}));
+  hops.push(H('inet','inet','Public Internet','Transit networks see only the outer public IPs and an encrypted payload. Performance varies with Internet congestion.',{k:'internet'}));
+  hops.push(H('gedgev','gbb','Google edge','HA VPN interface IPs are announced by Google, so the packet enters Google here.',{k:'google-edge'}));
+  hops.push(H(i,'hyb',`HA VPN gateway, interface ${s.failTun0?1:0}`,`The tunnel decrypts the packet and the inner packet re-enters the VPC dataplane. ${s.failTun0?'BGP on tunnel 0 dropped, so traffic moved to tunnel 1. Two interfaces with two tunnels is what gives the 99.99% SLA.':'An active/active or active/passive pair of tunnels gives 99.99%.'}`,{k:'havpn'}));
+  hops.push(H('vm','vpc','VM 10.10.0.5','Delivered. The return route to 192.168.10.0/24 is a dynamic route Cloud Router learned over BGP inside the tunnels.',{via:[[1000,s.failTun0?540:495]]}));
+  return {hops,ok:true,summary:'Encrypted over the Internet: quick to set up, about 3 Gbps per tunnel, and latency is variable.'};}
+})();
+</script>
+<script>
+/* ================= VIEW 3 · VPC OVERLAY ================= */
+(()=>{
+const VMS={web1:{name:'web-1',ip:'10.10.0.2',reg:'us-central1',zone:'us-central1-a',tags:['web'],xy:[115,215]},
+  web2:{name:'web-2',ip:'10.10.0.3',reg:'us-central1',zone:'us-central1-b',tags:['web'],xy:[260,215]},
+  db1:{name:'db-1',ip:'10.10.1.2',reg:'us-central1',zone:'us-central1-c',tags:['db'],xy:[405,330]},
+  eu1:{name:'eu-app-1',ip:'10.20.0.2',reg:'europe-west1',zone:'europe-west1-b',tags:[],xy:[545,215]},
+  za1:{name:'za-app-1',ip:'10.30.0.2',reg:'africa-south1',zone:'africa-south1-a',tags:[],xy:[790,215]}};
+const PR={'us-central1':'pr-usc1','europe-west1':'pr-euw1','africa-south1':'pr-afs1'};
+const EXT={web:'203.0.113.7',site:'93.184.215.14',gapi:'142.250.4.207',onprem:'192.168.10.5',iap:'35.235.240.10'};
+const isPriv=ip=>['10.0.0.0/8','172.16.0.0/12','192.168.0.0/16'].some(c=>inCidr(ip,c));
+function rows(s,reg){return [{dst:'10.10.0.0/24',nh:'subnet web · us-central1'},{dst:'10.10.1.0/24',nh:'subnet db · us-central1'},{dst:'10.20.0.0/24',nh:'subnet eu-app · europe-west1'},{dst:'10.30.0.0/24',nh:'subnet za-app · africa-south1'},
+  {dst:'192.168.10.0/24',nh:'dynamic · Cloud Router (us-central1) · '+(s.mode==='global'?'all regions':'us-central1 only'),usable:s.mode==='global'||reg==='us-central1'},
+  {dst:'0.0.0.0/0',nh:'static p1000 · default-internet-gateway'}];}
+function fwIn(s,src,dst,port){const t=VMS[dst].tags;
+  if(s.fwInt&&inCidr(src,'10.0.0.0/8'))return [true,'<b>allow-internal</b> (10.0.0.0/8, all, p1000) matched'];
+  if(s.fwWeb&&port==='tcp:443'&&t.includes('web'))return [true,'<b>allow-https</b> (0.0.0.0/0 → tag:web, tcp:443) matched'];
+  if(s.fwIap&&port==='tcp:22'&&inCidr(src,'35.235.240.0/20'))return [true,'<b>allow-iap-ssh</b> (35.235.240.0/20 → tcp:22) matched'];
+  return [false,'Nothing matched, so the <b>implied deny ingress</b> (p65535) applies'];}
+function arrive(s,hops,srcIp,dst,port){const [ok,why]=fwIn(s,srcIp,dst,port);hops.push(H(dst,'fw',`Ingress firewall at ${VMS[dst].name}'s vNIC`,why+'. Enforced on the destination host. There is no firewall box in the path.',{k:'fw-basic'}));
+  if(ok)hops.push(H(dst,'vpc',`Delivered to ${VMS[dst].name} (${VMS[dst].ip})`,'The guest OS receives the packet with the original source IP.',{k:'vm'}));return ok;}
+function send(s,src,dstIp,port){
+  const v=VMS[src],hops=[H(src,'vpc',`${v.name} sends to ${dstIp} ${port}`,`The guest OS hands the packet to its vNIC. ${s.phys?'On the physical host, <b>Andromeda</b> takes over.':'Andromeda, the virtual network on the host, takes over.'}`,{k:'vm'})];
+  const r=lpm(rows(s,v.reg),dstIp);
+  hops.push(H(src,'vpc','Route lookup: longest prefix match',`Destination ${dstIp} matches <b>${r.dst}</b> → ${r.nh}.${rows(s,v.reg).some(x=>x.usable===false&&inCidr(dstIp,x.dst))?' The 192.168.10.0/24 dynamic route exists but is <b>not usable from '+v.reg+'</b>, because the VPC uses <b>regional</b> dynamic routing.':''}`,{rt:r.dst,rtReg:v.reg,k:'route-table'}));
+  if(r.dst.startsWith('10.')){const d=Object.keys(VMS).find(k=>VMS[k].ip===dstIp);
+    if(!d){hops.push(H(src,'vpc','No such VM in this VPC',`10.10.0.5 is inside subnet web's range, but no NIC in <b>prod-vpc</b> has that address. dev-1 has it in <b>dev-vpc</b>, a separate routing domain that this packet can never reach.`,{k:'dev-vpc'}));return {hops,ok:false,summary:'VPCs are isolated. The same IP in another VPC is invisible to this one.'};}
+    const xr=VMS[d].reg!==v.reg;
+    if(s.phys){hops.push(H(PR[v.reg],'gbb','Encapsulated onto the physical network',`Andromeda wraps the packet (inner 10.x → 10.x) in an outer header between physical hosts and sends it ${xr?'over the <b>backbone</b> to '+VMS[d].reg:'across the <b>Jupiter</b> data-center fabric'}.`,{k:'andromeda'}));if(xr)hops.push(H(PR[VMS[d].reg],'gbb',`Arrives at ${VMS[d].reg} hosts`,'The destination host decapsulates the packet.',{k:'phys-host'}));}
+    else if(xr)hops.push(H(src,'gbb','Crosses regions inside the same VPC',`The VPC is global, so the subnet route to ${VMS[d].reg} works directly. Physically it rides Google's backbone. Turn on the physical lens to see it.`,{k:'b4'}));
+    const ok=arrive(s,hops,v.ip,d,port);return {hops,ok,summary:ok?(xr?'Cross-region over internal IPs. No VPN or peering, because one VPC spans all regions.':(VMS[d].zone!==v.zone?'Same subnet, different zones. A subnet is regional, so zones are not a network boundary.':'Delivered inside the subnet.')):'Routed correctly, then dropped by the destination\'s ingress firewall.'};}
+  if(r.dst==='192.168.10.0/24'){hops.push(H('hv3','hyb','HA VPN gateway (us-central1)','The next hop is the VPN tunnel. The packet is encrypted with IPsec toward on-prem.',{k:'havpn'}));hops.push(H('onp','hyb','On-prem 192.168.10.5','Delivered over the tunnel.',{k:'onprem'}));
+    return {hops,ok:true,summary:s.mode==='global'?'Global dynamic routing: a route learned in us-central1 is usable from every region.':'Same region as the Cloud Router.'};}
+  /* default route */
+  hops.push(H('igw','vpc','default-internet-gateway',`It is a next hop, not a device. It delivers only to <b>public</b> destinations, and only if the VM has an egress identity.`,{k:'igw'}));
+  if(isPriv(dstIp)){hops.push(H('igw','vpc','Dropped: private destination',`${dstIp} is RFC 1918 and the Internet won't route it. ${v.reg!=='us-central1'?'Switch dynamic routing to <b>global</b> so '+v.name+' can use the route learned in us-central1.':''}`,{k:'routing-mode'}));return {hops,ok:false,summary:'The more specific on-prem route was unusable from this region, so the packet fell through to 0.0.0.0/0.'};}
+  const hasExt=src==='web1'&&s.web1Ext,natOk=s.nat&&v.reg==='us-central1';
+  if(dstIp===EXT.gapi){
+    if(hasExt){hops.push(H('gapis','gbb','storage.googleapis.com','The VM has an external IP, so it reaches Google APIs. The traffic stays on Google\'s network.',{k:'pga'}));return {hops,ok:true,summary:'External IP: Google APIs are reachable.'};}
+    if((src==='db1'&&s.pga)||natOk){hops.push(H('gapis','gbb','storage.googleapis.com via Private Google Access',`${s.pga?'Subnet db has <b>Private Google Access</b> on':'Cloud NAT is configured for this subnet, so GCP <b>turns on Private Google Access for it automatically</b>'}. API traffic is delivered with the internal source IP. No NAT, no Internet.`,{k:'pga'}));return {hops,ok:true,summary:'Private access to Google APIs without any external IP.'};}
+    hops.push(H('igw','vpc','Dropped: no external IP, no PGA',`${v.name} has only an internal IP, and subnet ${src==='db1'?'db':'web'} has Private Google Access off. Turn on PGA (or Cloud NAT).`,{k:'pga'}));return {hops,ok:false,summary:'Internal-only VMs need Private Google Access to reach Google APIs.'};}
+  if(hasExt){hops.push(H('igw','vpc','1:1 NAT to external IP',`Andromeda rewrites the source 10.10.0.2 to <b>34.123.45.67</b>. The VM never sees this address on its interface.`,{k:'ext-ip'}));hops.push(H('inet','inet','example.com (93.184.215.14)','It exits Google at the edge and continues on the public Internet. The reply is allowed back by connection tracking.',{k:'internet'}));return {hops,ok:true,summary:'Egress via the VM\'s own external IP. The implied allow-egress rule permits it.'};}
+  if(natOk){hops.push(H('nat','vpc','Cloud NAT (source NAT on the host)',`The source becomes a Cloud NAT IP (35.239.1.4) with an allocated port range. Andromeda does this on the sending host, so the packet never passes through a NAT box.`,{k:'cloud-nat'}));hops.push(H('inet','inet','example.com','Delivered. Replies return to the NAT IP and port, and are mapped back.',{k:'internet'}));return {hops,ok:true,summary:'Outbound-only Internet access for an internal-only VM.'};}
+  hops.push(H('igw','vpc','Dropped: no external IP and no Cloud NAT',`${v.name} has no public identity, so the gateway cannot deliver to the Internet. Give the VM an external IP, or turn on Cloud NAT${v.reg!=='us-central1'?' (it is regional and must exist in '+v.reg+')':''}.`,{k:'cloud-nat'}));return {hops,ok:false,summary:'A route to the Internet exists, but no address to send from.'};}
+
+VIEWS.push({id:'vpc',tab:'VPC overlay',title:'3 · Your VPC, virtualised on the backbone',
+  blurb:'One global VPC (green) with regional subnets that span zones, VMs in zones, and one route table. Everything here is configuration that Andromeda puts into effect on each physical host. Turn on the physical lens to see what really carries the packets.',
+  intro:'Subnets (horizontal bands) cross the zone columns: <b>a subnet is regional, a VM is zonal</b>. The route table (bottom right) highlights the route chosen for each packet. Start with web-1 → db-1, then try the Internet and on-prem scenarios and flip the toggles.',
+  defaults:{web1Ext:true,nat:false,pga:false,mode:'regional',fwInt:true,fwWeb:true,fwIap:false,phys:false},
+  controls:[
+    {type:'toggle',key:'phys',label:'Physical lens: show hosts and the underlay',k:'andromeda'},
+    {type:'toggle',key:'web1Ext',label:'web-1 has an external IP (34.123.45.67)',k:'ext-ip'},
+    {type:'toggle',key:'nat',label:'Cloud NAT in us-central1',k:'cloud-nat'},
+    {type:'toggle',key:'pga',label:'Private Google Access on subnet db',k:'pga'},
+    {type:'seg',key:'mode',label:'Dynamic routing',k:'routing-mode',opts:[['regional','Regional'],['global','Global']]},
+    {type:'toggle',key:'fwInt',label:'Firewall: allow-internal (10.0.0.0/8)',k:'fw-basic'},
+    {type:'toggle',key:'fwWeb',label:'Firewall: allow-https 0.0.0.0/0 → tag:web',k:'fw-basic'},
+    {type:'toggle',key:'fwIap',label:'Firewall: allow-iap-ssh 35.235.240.0/20 → tcp:22',k:'iap'}],
+  scenarios:[
+    {id:'same',label:'web-1 → web-2 (same subnet, other zone)',hint:'tcp:80',run:s=>send(s,'web1','10.10.0.3','tcp:80')},
+    {id:'sub',label:'web-1 → db-1 (other subnet)',hint:'tcp:5432',run:s=>send(s,'web1','10.10.1.2','tcp:5432')},
+    {id:'xr',label:'web-1 → eu-app-1 (other region)',hint:'tcp:8080',run:s=>send(s,'web1','10.20.0.2','tcp:8080')},
+    {id:'za',label:'za-app-1 (Johannesburg) → web-1',hint:'tcp:443',run:s=>send(s,'za1','10.10.0.2','tcp:443')},
+    {id:'out',label:'web-1 → example.com',hint:'Internet egress',run:s=>send(s,'web1',EXT.site,'tcp:443')},
+    {id:'nat',label:'db-1 → example.com (no external IP)',hint:'Cloud NAT',run:s=>send(s,'db1',EXT.site,'tcp:443')},
+    {id:'gapi',label:'db-1 → storage.googleapis.com',hint:'PGA',run:s=>send(s,'db1',EXT.gapi,'tcp:443')},
+    {id:'in',label:'Internet client → web-1',hint:'inbound 443',run:s=>{const hops=[H('inet','inet','Client 203.0.113.7 → 34.123.45.67:443','Enters Google at the nearest PoP (Premium tier) and is routed to the region.',{k:'internet'}),H('igw','vpc','External IP → internal IP',s.web1Ext?'Andromeda maps 34.123.45.67 to web-1\'s internal IP, 10.10.0.2.':'No external IP is mapped to web-1. Cloud NAT never accepts unsolicited inbound, so the packet has nowhere to go.',{k:'ext-ip'})];
+      if(!s.web1Ext)return {hops,ok:false,summary:'Without an external IP (or a load balancer), the Internet cannot open connections to the VM.'};const ok=arrive(s,hops,EXT.web,'web1','tcp:443');return {hops,ok,summary:ok?'Inbound needs both an external IP (or a load balancer) and an ingress allow rule.':'The external IP worked, but no ingress rule allows 443.'};}},
+    {id:'iap',label:'Admin SSH → db-1 via IAP',hint:'no external IP',run:s=>{const hops=[H('admin','inet','Admin laptop: gcloud compute ssh db-1 --tunnel-through-iap','The client wraps SSH in HTTPS (WebSocket) to IAP. There is no public IP on db-1.',{k:'iap'}),H('iap','gbb','Identity-Aware Proxy','IAP checks IAM (roles/iap.tunnelResourceAccessor), then opens TCP to 10.10.1.2:22 from <b>35.235.240.0/20</b>.',{k:'iap'})];
+      const ok=arrive(s,hops,EXT.iap,'db1','tcp:22');return {hops,ok,summary:ok?'SSH with no external IP and no bastion, and access is checked by IAM.':'IAP is fine, but the VPC firewall must allow 35.235.240.0/20 on tcp:22.'};}},
+    {id:'hyb',label:'eu-app-1 → on-prem 192.168.10.5',hint:'routing mode',run:s=>send(s,'eu1',EXT.onprem,'tcp:443')},
+    {id:'iso',label:'web-1 → 10.10.0.5 (dev-1 in another VPC)',hint:'isolation',run:s=>send(s,'web1','10.10.0.5','tcp:22')}],
+  draw(s,hits){let o='';const rh=[...hits].reverse().find(h=>h.rt);
+    /* physical band */
+    o+=`<rect x="20" y="8" width="1160" height="56" rx="8" style="fill:color-mix(in srgb,var(--gbb) ${s.phys?10:4}%,transparent);stroke:${s.phys?'var(--gbb)':'var(--gbb-line)'}"/>`+T(32,24,'PHYSICAL UNDERLAY · Google backbone + Jupiter fabric','hd').replace('class="hd"',`class="hd" style="fill:var(--gbb);opacity:${s.phys?1:.5}"`)+ii(1168,20,'lens-gbb');
+    [['pr-usc1',260,'us-central1 hosts'],['pr-euw1',610,'europe-west1 hosts'],['pr-afs1',860,'africa-south1 hosts']].forEach(([id,x,l])=>{o+=box(id,x-65,32,130,26,l,'phys-host','gbox','',{center:true,noi:true});});
+    o+=`<line class="terr" x1="325" y1="45" x2="545" y2="45" style="opacity:${s.phys?.6:.25}"/><line class="terr" x1="675" y1="45" x2="795" y2="45" style="opacity:${s.phys?.6:.25}"/>`;
+    o+=frame(20,75,980,495,'VPC network prod-vpc · global · custom mode','vpc','var(--vpc)','project net-prod');
+    /* us-central1 */
+    o+=`<rect x="35" y="108" width="450" height="345" rx="8" style="fill:none;stroke:var(--gbb-line);stroke-dasharray:5 4"/>`+T(45,124,'region us-central1','sm mono')+ii(475,118,'region');
+    [['a',45],['b',190],['c',335]].forEach(([z,x])=>{o+=`<g class="nd" data-id="z-${z}" data-k="zone"><rect x="${x}" y="130" width="140" height="315" rx="5" style="fill:color-mix(in srgb,var(--gbb) 4%,transparent);stroke:var(--gbb-bg2)"/>${T(x+70,143,'zone us-central1-'+z,'xs','middle')}</g>`;});
+    const sn=(id,x,y,w,h,l)=>`<g class="nd" data-id="${id}" data-k="subnet"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" style="fill:var(--vpc-bg);stroke:var(--vpc)"/>${T(x+8,y+14,l,'sm mono').replace('class="sm mono"','class="sm mono" style="fill:var(--vpc-ink)"')}</g>`+ii(x+w-9,y+9,'subnet');
+    o+=sn('sn-web',45,155,430,100,'subnet web · 10.10.0.0/24');o+=sn('sn-db',45,272,430,100,`subnet db · 10.10.1.0/24${s.pga?' · PGA on':''}`);
+    /* europe-west1 */
+    o+=`<rect x="500" y="108" width="230" height="230" rx="8" style="fill:none;stroke:var(--gbb-line);stroke-dasharray:5 4"/>`+T(510,124,'region europe-west1','sm mono');
+    [['b',508],['c',581],['d',654]].forEach(([z,x])=>{o+=`<g class="nd" data-id="ze-${z}" data-k="zone"><rect x="${x}" y="130" width="70" height="200" rx="5" style="fill:color-mix(in srgb,var(--gbb) 4%,transparent);stroke:var(--gbb-bg2)"/>${T(x+35,143,'zone '+z,'xs','middle')}</g>`;});
+    o+=sn('sn-eu',508,155,214,100,'eu-app · 10.20.0.0/24');
+    o+=`<rect x="745" y="108" width="240" height="230" rx="8" style="fill:none;stroke:var(--gbb-line);stroke-dasharray:5 4"/>`+T(755,124,'region africa-south1','sm mono');
+    [['a',753],['b',829],['c',905]].forEach(([z,x])=>{o+=`<g class="nd" data-id="zz-${z}" data-k="zone"><rect x="${x}" y="130" width="72" height="200" rx="5" style="fill:color-mix(in srgb,var(--gbb) 4%,transparent);stroke:var(--gbb-bg2)"/>${T(x+36,143,'zone '+z,'xs','middle')}</g>`;});
+    o+=sn('sn-za',753,155,224,100,'za-app · 10.30.0.0/24');
+    /* VMs */
+    Object.entries(VMS).forEach(([id,v])=>{o+=vm(id,v.xy[0],v.xy[1]+8,v.name,v.ip+(id==='web1'&&s.web1Ext?' · ext':''));N[id]={x:v.xy[0],y:v.xy[1]+8};
+      if(s.phys)o+=`<g class="nd" data-id="h-${id}" data-k="andromeda"><rect x="${v.xy[0]-40}" y="${v.xy[1]+30}" width="80" height="14" rx="3" style="fill:var(--gbb-bg);stroke:var(--gbb)"/>${T(v.xy[0],v.xy[1]+40,'host · Andromeda','xs','middle').replace('class="xs"','class="xs" style="fill:var(--gbb-ink)"')}</g>`;});
+    /* infra row */
+    o+=box('cr3',55,462,120,34,'Cloud Router','cloud-router','hbox','BGP · us-central1');
+    o+=box('nat',200,462,120,34,'Cloud NAT','cloud-nat',s.nat?'vbox':'gbox',s.nat?'on · 35.239.1.4':'off');
+    o+=box('hv3',345,462,120,34,'HA VPN gateway','havpn','hbox','to on-prem');
+    o+=L([[175,479],[200,479]],'bgp');o+=L([[115,479],[115,505],[405,505],[405,496]],'bgp');
+    /* route table */
+    const rt=rh?rh.rtReg:'us-central1';const srcName=rh?Object.values(VMS).find(v=>v.reg===rt&&true).name:'';
+    o+=routeTable(500,350,485,`Route table${rh?' · as used by a VM in '+rt:''}`,rows(s,rt),rh&&rh.rt);
+    /* gateway + external */
+    P('igw',1000,150);o+=`<g class="nd" data-id="igw" data-k="igw"><circle cx="1000" cy="150" r="11" style="fill:var(--vpc-bg);stroke:var(--vpc);stroke-width:1.5"/>${T(1000,154,'⇄','lbl','middle')}</g>`+T(1000,176,'internet gateway','xs','middle');
+    o+=cloud('inet',1105,140,72,26,'Internet','internet','example.com');o+=ln(1011,150,1033,145,'inetl');
+    o+=box('gapis',1035,235,140,36,'Google APIs','pga','gbox','storage.googleapis.com');o+=L([[1000,161],[1035,253]],'gl');
+    o+=box('iap',1035,330,140,36,'IAP TCP forwarding','iap','gbox','35.235.240.0/20');o+=L([[1035,348],[1000,348]],'gl');
+    o+=box('admin',1035,410,140,32,'Admin laptop','device','ebox','gcloud … --tunnel');o+=L([[1105,410],[1105,366]],'inetl');
+    o+=box('onp',1035,600,140,36,'On-prem','onprem','hbox','192.168.10.0/24');o+=L([[465,479],[620,600],[1035,618]],'hl');
+    /* dev vpc */
+    o+=frame(20,585,470,88,'VPC dev-vpc · same project, isolated','dev-vpc','var(--neutral)','10.10.0.0/24 (overlaps prod-vpc!)');
+    o+=vm('dev1',330,628,'dev-1','10.10.0.5','dev-vpc',true);
+    /* callouts */
+    o+=callout(440,235,330,418,'A subnet spans all\nzones of its region');
+    o+=callout(900,482,903,520,'One table for the whole VPC,\nlongest prefix wins');
+    o+=callout(1000,140,940,95,'Not a device: a next hop\nthat leads off the VPC');
+    return o;},
+  promptCtx:s=>{const a=[];if(!s.web1Ext)a.push('web-1 has no external IP');if(s.nat)a.push('Cloud NAT on');if(s.pga)a.push('PGA on subnet db');if(s.mode==='global')a.push('global dynamic routing');if(!s.fwInt)a.push('allow-internal removed');if(!s.fwWeb)a.push('allow-https removed');if(s.fwIap)a.push('IAP SSH allowed');if(s.phys)a.push('physical lens on');return a.length?'Settings: '+a.join(', ')+'.':'';}
+});
+})();
+
+/* ================= VIEW 4 · ADDRESSING ================= */
+(()=>{
+const SPECIAL=[['10.0.0.0/8','RFC 1918 private','rfc1918'],['172.16.0.0/12','RFC 1918 private','rfc1918'],['192.168.0.0/16','RFC 1918 private','rfc1918'],['100.64.0.0/10','Shared space (RFC 6598)','cgnat'],['10.128.0.0/9','Auto-mode VPC subnets','auto-range'],['169.254.169.254/32','Metadata · DHCP · DNS','metadata'],
+  ['35.235.240.0/20','IAP TCP forwarding','iap-range'],['35.191.0.0/16','Health checks / GFE','hc-range'],['130.211.0.0/22','Health checks / GFE','hc-range'],['199.36.153.8/30','private.googleapis.com','pga-range'],['199.36.153.4/30','restricted.googleapis.com','rest-range'],['0.0.0.0/0','Default route','default-range']];
+function calc(s){const ipn=ip2n(s.ip);if(ipn==null)return null;const p=+s.pfx,m=maskN(p),net=(ipn&m)>>>0,size=2**(32-p),bc=(net+size-1)>>>0;return {ipn,p,m,net,size,bc};}
+VIEWS.push({id:'addr',tab:'Addressing',title:'4 · Addressing: CIDR, masks, reserved and special ranges',noTrace:true,
+  blurb:'Type a range or drag the prefix. Click any bit to move the network/host boundary. Shows what GCP reserves, whether a host is "same subnet", whether two ranges collide, and the special ranges that show up in firewall rules.',
+  intro:'Blue bits are the <b>network</b> part (fixed for every host in the block). Green bits number the <b>hosts</b>. GCP subtracts <b>4</b> addresses from every subnet, not 2. The table at the bottom lists the ranges you will meet in routes and firewall rules.',
+  defaults:{ip:'10.10.0.0',pfx:24,test:'10.10.0.200',other:'10.10.0.128/25'},
+  controls:[{type:'html',html:s=>`<div class="row"><span class="lab">Base IP ${iiHtml('cidr')}</span><input type="text" id="aIp" value="${esc(s.ip)}" size="15"><span class="mono" style="font-family:var(--mono)">/</span><output id="aPo" style="font-family:var(--mono)">${s.pfx}</output></div>
+    <div class="row"><span class="lab">Prefix ${iiHtml('mask')}</span><input type="range" id="aPf" min="8" max="30" value="${s.pfx}"></div>
+    <div class="row"><span class="lab">Is this host in it?</span><input type="text" id="aT" value="${esc(s.test)}" size="15"></div>
+    <div class="row"><span class="lab">Overlaps with? ${iiHtml('overlap')}</span><input type="text" id="aO" value="${esc(s.other)}" size="18"></div>`}],
+  bind(el,s){const up=()=>{render();};
+    el.querySelector('#aIp').oninput=e=>{if(ip2n(e.target.value)!=null){s.ip=e.target.value.trim();up();}};
+    el.querySelector('#aPf').oninput=e=>{s.pfx=+e.target.value;el.querySelector('#aPo').textContent=s.pfx;up();};
+    el.querySelector('#aT').oninput=e=>{if(ip2n(e.target.value)!=null){s.test=e.target.value.trim();up();}};
+    el.querySelector('#aO').oninput=e=>{const v=e.target.value.trim();if(/^\d+\.\d+\.\d+\.\d+\/\d+$/.test(v)&&ip2n(v.split('/')[0])!=null&&+v.split('/')[1]<=32){s.other=v;up();}};},
+  scenarios:[{id:'p24',label:'/24 · a typical web subnet',preset:s=>Object.assign(s,{ip:'10.10.0.0',pfx:24,test:'10.10.0.200'})},
+    {id:'p29',label:'/29 · smallest GCP subnet',preset:s=>Object.assign(s,{ip:'10.10.0.8',pfx:29,test:'10.10.0.12'})},
+    {id:'p20',label:'/20 · one auto-mode region',preset:s=>Object.assign(s,{ip:'10.128.0.0',pfx:20,test:'10.128.15.254',other:'10.128.0.0/9'})},
+    {id:'p14',label:'/14 · GKE pod secondary range',preset:s=>Object.assign(s,{ip:'10.4.0.0',pfx:14,test:'10.7.255.1'})},
+    {id:'p8',label:'/8 · largest GCP subnet',preset:s=>Object.assign(s,{ip:'10.0.0.0',pfx:8,test:'192.168.1.1'})}],
+  onClick(id,s){if(id.startsWith('bit-')){const i=+id.slice(4);s.pfx=Math.max(8,Math.min(30,i+1));return true;}if(id.startsWith('sp-')){const c=SPECIAL[+id.slice(3)][0];s.test=c.split('/')[0]==='0.0.0.0'?s.test:c.split('/')[0];return true;}},
+  draw(s){let o='';const c=calc(s);if(!c)return T(40,60,'Invalid IP','lbl');
+    const {ipn,p,m,net,size,bc}=c;const cidr=n2ip(net)+'/'+p;
+    o+=T(40,38,cidr,'mono b').replace('class="mono b"','class="mono b" style="font-size:24px;fill:var(--text)"');
+    if(net!==ipn)o+=T(260,36,`(you typed ${s.ip}; host bits are zeroed → network ${n2ip(net)})`,'sm');
+    o+=ii(232,30,'cidr');
+    /* bits */
+    const bx=i=>58+i*33+Math.floor(i/8)*10;
+    for(let i=0;i<32;i++){const bit=(ipn>>>(31-i))&1,isNet=i<p,x=bx(i);P('bit-'+i,x+15,80);
+      o+=`<g class="nd bit" data-id="bit-${i}" data-k="${isNet?'mask':'cidr'}"><rect x="${x}" y="62" width="30" height="34" rx="3" style="fill:${isNet?'var(--gbb-bg2)':'var(--vpc-bg2)'}"/>${T(x+15,84,bit,'mono b','middle').replace('class="mono b"',`class="mono b" style="font-size:14px;fill:${isNet?'var(--gbb-ink)':'var(--vpc-ink)'}"`)}</g>`;
+      o+=`<rect x="${x}" y="104" width="30" height="16" rx="2" style="fill:${isNet?'var(--gbb-bg)':'var(--vpc-bg)'}"/>`+T(x+15,116,isNet?'1':'0','xs mono','middle');}
+    for(let k=0;k<4;k++){const x=bx(k*8);o+=T(x+128,56,String((ipn>>>(24-8*k))&255),'lbl mono b','middle');o+=T(x+128,136,String((m>>>(24-8*k))&255),'sm mono','middle');}
+    o+=T(40,84,'IP','xs');o+=T(40,116,'mask','xs');
+    const bnd=bx(p)-(p%8===0&&p<32?6:2);o+=`<line x1="${bnd}" y1="52" x2="${bnd}" y2="128" style="stroke:var(--gold);stroke-width:2"/>`+T(bnd,150,`← ${p} network bits │ ${32-p} host bits →`,'sm','middle');
+    o+=T(1145,136,`mask ${n2ip(m)}`,'sm mono','end');
+    /* range bar */
+    const X0=60,X1=1140,Y=185;o+=T(X0,Y-8,`ADDRESS BLOCK · ${size.toLocaleString()} addresses`,'hd').replace('class="hd"','class="hd" style="fill:var(--muted)"')+ii(X0+300,Y-12,'reserved');
+    const res=[[net,'network','reserved'],[net+1,'gateway (.1)','gw-addr'],[bc-1,'reserved by Google','reserved'],[bc,'broadcast','reserved']];
+    if(size<=64){const w=(X1-X0)/size;for(let i=0;i<size;i++){const a=(net+i)>>>0,r=res.find(x=>x[0]===a);const x=X0+i*w;P('cell-'+i,x+w/2,Y+16);
+        o+=`<g class="nd" data-id="cell-${i}" data-k="${r?r[2]:'subnet'}"><rect x="${x+1}" y="${Y}" width="${w-2}" height="32" rx="2" style="fill:${r?'var(--bad-bg)':'var(--ok-bg)'};stroke:${r?'var(--bad-line)':'var(--ok-line)'}"/>${w>26?T(x+w/2,Y+20,'.'+(a&255),'xs mono','middle'):''}</g>`;}}
+    else{const cw=46;[[X0,0],[X0+cw,1],[X1-2*cw,2],[X1-cw,3]].forEach(([x,i])=>{o+=`<g class="nd" data-id="res-${i}" data-k="${res[i][2]}"><rect x="${x+1}" y="${Y}" width="${cw-2}" height="32" rx="2" style="fill:var(--bad-bg);stroke:var(--bad-line)"/>${T(x+cw/2,Y+20,'.'+(res[i][0]&255),'xs mono','middle')}</g>`;});
+      o+=`<g class="nd" data-id="usable" data-k="subnet"><rect x="${X0+2*cw+1}" y="${Y}" width="${X1-X0-4*cw-2}" height="32" rx="2" style="fill:var(--ok-bg);stroke:var(--ok-line)"/>${T((X0+X1)/2,Y+20,`${n2ip(net+2)} … ${n2ip(bc-2)} usable`,'sm mono','middle')}</g>`;}
+    res.forEach((r,i)=>{const x=i<2?X0+i*150:X1-(3-i)*190;o+=T(x,Y+50,`${n2ip(r[0]>>>0)} · ${r[1]}`,'xs mono',i<2?'start':'end');});
+    /* test marker */
+    const tn=ip2n(s.test);if(tn!=null){const inside=((tn&m)>>>0)===net;if(inside){const f=(tn-net+0.5)/size,x=X0+f*(X1-X0);o+=`<path d="M${x},${Y-2}l-6,-10h12z" style="fill:var(--gold)"/>`;}
+      o+=T(X0,Y+76,inside?`✓ ${s.test} is inside ${cidr}: a host here treats it as the same subnet (in GCP, Andromeda still delivers it host to host).`:`✕ ${s.test} is outside ${cidr}: the host sends it to the gateway, and the VPC route table decides (longest prefix match).`,'sm').replace('class="sm"',`class="sm" style="fill:${inside?'var(--vpc-ink)':'var(--bad-ink)'}"`);}
+    /* stats */
+    const gcpOk=p>=8&&p<=29;const st=[['Total addresses',size.toLocaleString(),'cidr'],['Usable in GCP (−4)',gcpOk?(size-4).toLocaleString():'n/a','reserved'],['Classic usable (−2)',Math.max(0,size-2).toLocaleString(),'reserved'],['Subnet mask',n2ip(m),'mask'],['Valid GCP primary range?',gcpOk?'yes (/8–/29)':'no, must be /8–/29','subnet']];
+    st.forEach(([k,v,ik],i)=>{const x=60+i*218;o+=`<g class="nd" data-id="st-${i}" data-k="${ik}"><rect x="${x}" y="285" width="206" height="48" rx="6" style="fill:var(--surface-2);stroke:var(--line)"/>${T(x+10,302,k,'xs')}${T(x+10,323,v,'mono b').replace('class="mono b"',`class="mono b" style="font-size:15px;fill:${i===1?'var(--vpc-ink)':i===2?'var(--muted)':'var(--text)'}"`)}</g>`;});
+    /* overlap */
+    const ov=cidrOverlap(cidr,s.other);
+    o+=`<g class="nd" data-id="ovl" data-k="overlap"><rect x="60" y="345" width="1080" height="34" rx="6" style="fill:${ov?'var(--bad-bg)':'var(--ok-bg)'};stroke:${ov?'var(--bad-line)':'var(--ok-line)'}"/>${T(72,366,ov?`⚠ ${cidr} overlaps ${s.other}. VPC peering, NCC and hybrid routes between these would be refused or ambiguous. PSC or NAT can tolerate it.`:`✓ ${cidr} and ${s.other} don't overlap. Safe to peer, or to route between them over Interconnect or VPN.`,'sm')}</g>`;
+    /* special ranges */
+    o+=T(60,408,'SPECIAL RANGES YOU WILL MEET IN GCP · click a row to test an address from it','hd').replace('class="hd"','class="hd" style="fill:var(--muted)"');
+    SPECIAL.forEach(([c2,l,k],i)=>{const col=i%2,row=Math.floor(i/2),x=60+col*545,y=418+row*40;const hit=tn!=null&&c2!=='0.0.0.0/0'&&inCidr(s.test,c2);
+      o+=`<g class="nd" data-id="sp-${i}" data-k="${k}"><rect x="${x}" y="${y}" width="535" height="34" rx="5" style="fill:${hit?'var(--hit-bg)':'var(--surface-2)'};stroke:${hit?'var(--gold)':'var(--line)'}"/>${T(x+10,y+21,c2,'mono b').replace('class="mono b"','class="mono b" style="font-size:12px;fill:var(--gbb-ink)"')}${T(x+185,y+21,l,'lbl')}</g>`+ii(x+522,y+17,k);});
+    return o;},
+  promptCtx:s=>{const c=calc(s);return c?`I'm looking at ${n2ip(c.net)}/${c.p} (${c.size} addresses, ${c.size-4} usable in GCP), testing host ${s.test}, and checking overlap with ${s.other}.`:'';}
+});
+})();
+
+/* ================= VIEW 5 · FIREWALLS ================= */
+(()=>{
+const FVM={web1:{name:'web-1',ip:'10.10.0.2',tags:['web'],sa:'web-sa'},db1:{name:'db-1',ip:'10.10.1.2',tags:['db'],sa:'db-sa'}};
+const EP={internet:['Internet client','203.0.113.7'],bad:['Known-bad host','198.51.100.9'],iap:['IAP','35.235.240.10'],hc:['Health checker','35.191.10.1'],onprem:['On-prem host','192.168.10.5'],web1:['web-1','10.10.0.2'],db1:['db-1','10.10.1.2'],ext:['example.com','93.184.215.14'],gapi:['private.googleapis.com','199.36.153.9']};
+const R=(id,p,dir,act,peer,ports,target,name)=>({id,p,dir,act,peer,ports,target,name});
+const LAYERS={
+  'L-org':{t:'Hierarchical policy · Organization example.com',k:'fw-hier',rules:[R('o1',100,'ingress','deny','0.0.0.0/0',['tcp:3389'],'all','block-rdp-everywhere'),R('o2',200,'ingress','allow','35.191.0.0/16,130.211.0.0/22',['tcp:80','tcp:443'],'all','allow-google-health-checks'),R('o3',300,'ingress','deny','198.51.100.0/24',['all'],'all','deny-known-bad-range')]},
+  'L-folder':{t:'Hierarchical policy · Folder prod',k:'fw-hier',rules:[R('f1',100,'ingress','goto_next','10.0.0.0/8',['all'],'all','internal → let VPC owners decide'),R('f2',400,'ingress','allow','35.235.240.0/20',['tcp:22'],'all','allow-iap-ssh'),R('f3',500,'ingress','deny','0.0.0.0/0',['tcp:22'],'all','no-ssh-from-anywhere-else')]},
+  'L-vpc':{t:'VPC firewall rules · prod-vpc',k:'fw-vpc',rules:[R('v1',1000,'ingress','allow','0.0.0.0/0',['tcp:80','tcp:443'],'tag:web','allow-web'),R('v2',1000,'ingress','allow','sa:web-sa',['tcp:5432'],'sa:db-sa','allow-db-from-web'),R('v3',1000,'ingress','allow','10.10.0.0/16',['icmp'],'all','allow-icmp-internal'),R('v4',900,'egress','deny','0.0.0.0/0',['all'],'sa:db-sa','db-no-egress'),R('v5',800,'egress','allow','199.36.153.8/30',['tcp:443'],'sa:db-sa','db-to-google-apis')]},
+  'L-gnp':{t:'Global network firewall policy · prod-policy',k:'fw-gnp',rules:[R('n1',1000,'ingress','deny','0.0.0.0/0',['tcp:5432'],'all','never-expose-postgres')]},
+  'L-rnp':{t:'Regional network firewall policy · us-central1',k:'fw-rnp',rules:[]},
+  'L-impl':{t:'Implied rules · cannot be deleted',k:'fw-implied',rules:[R('i1',65535,'ingress','deny','0.0.0.0/0',['all'],'all','implied-deny-ingress'),R('i2',65535,'egress','allow','0.0.0.0/0',['all'],'all','implied-allow-egress')]}};
+const SHORT={'L-org':'Org policy','L-folder':'Folder policy','L-vpc':'VPC rules','L-gnp':'Global network policy','L-rnp':'Regional network policy','L-impl':'Implied rules'};
+const portsTxt=ps=>{const m={};ps.forEach(x=>{const [a,b]=x.split(':');(m[a]=m[a]||[]).push(b);});return Object.entries(m).map(([a,b])=>b[0]?a+':'+b.join(','):a).join(' ');};
+const order=s=>s.order==='after'?['L-org','L-folder','L-vpc','L-gnp','L-rnp','L-impl']:['L-org','L-folder','L-gnp','L-rnp','L-vpc','L-impl'];
+function match(r,pkt,dir,vmx){if(r.dir!==dir)return false;
+  if(r.target!=='all'){const [kd,val]=r.target.split(':');if(kd==='tag'&&!vmx.tags.includes(val))return false;if(kd==='sa'&&vmx.sa!==val)return false;}
+  const peerIp=dir==='ingress'?pkt.src:pkt.dst;
+  if(r.peer.startsWith('sa:')){const pv=FVM[pkt.srcKey];if(!(dir==='ingress'&&pv&&pv.sa===r.peer.slice(3)))return false;}
+  else if(!r.peer.split(',').some(c=>inCidr(peerIp,c)))return false;
+  if(!(r.ports.includes('all')||r.ports.includes(pkt.port)))return false;return true;}
+function evalDir(s,pkt,dir,vmKey){const vmx=FVM[vmKey],steps=[];
+  for(const lid of order(s)){const Lr=LAYERS[lid];steps.push({lid});
+    let c=Lr.rules.filter(r=>!s.off[r.id]&&match(r,pkt,dir,vmx));
+    c.sort((a,b)=>a.p-b.p||(lid==='L-vpc'?(a.act==='deny'?-1:1):0));
+    const r=c[0];if(!r){steps.push({none:lid});continue;}
+    steps.push({r,lid});if(r.act==='goto_next')continue;return {steps,act:r.act,r};}
+  return {steps,act:dir==='ingress'?'deny':'allow',r:null};}
+const pkt=s=>({srcKey:s.src,dstKey:s.dst,src:EP[s.src][1],dst:EP[s.dst][1],port:s.port});
+function pass(s,p,dir,vmKey,hops){
+  hops.push(H(dir==='egress'?'req':null,'fw',`${dir==='egress'?'Egress':'Ingress'} check at ${FVM[vmKey].name}'s vNIC`,`The ${dir==='egress'?'sender':'receiver'}'s host evaluates the layers top to bottom. ${dir==='egress'?'The destination range is matched against '+p.dst:'The source is matched against '+p.src+(FVM[p.srcKey]?' (service account '+FVM[p.srcKey].sa+')':'')}.`,{k:'fw-target',at:dir==='egress'?null:[288,48]}));
+  const e=evalDir(s,p,dir,vmKey);
+  for(const st of e.steps){
+    if(st.lid&&!st.r&&!st.none)continue;
+    else if(st.none)hops.push(H(st.none,'fw',SHORT[st.none]+': no match',`No ${dir} rule here matches, so evaluation falls through to the next layer.`,{k:LAYERS[st.none].k}));
+    else if(st.r){const r=st.r;const why=r.act==='goto_next'?'<b>goto_next</b>: this layer delegates the decision to the next level down.':r.act==='allow'?`<b>ALLOW</b>, and evaluation stops.${st.lid!=='L-vpc'&&st.lid!=='L-impl'?' Lower layers are never consulted, so project owners cannot override this.':''}`:`<b>DENY</b>, and evaluation stops.`;
+      hops.push(H('r-'+r.id,'fw',`p${r.p} ${r.name}`,`${r.dir} ${r.act} ${r.peer.startsWith('sa:')?'from service account '+r.peer.slice(3):(r.dir==='ingress'?'src ':'dst ')+r.peer} · ${portsTxt(r.ports)} · target ${r.target}. ${why}`,{fw:r.id,act:r.act,k:LAYERS[st.lid].k}));}}
+  return e;}
+function evaluate(s){const p=pkt(s);const hops=[H('req','fw',`${EP[s.src][0]} ${p.src} → ${EP[s.dst][0]} ${p.dst} · ${p.port}`,'The packet to evaluate.',{k:'fw-req'})];
+  if(s.src===s.dst)return {hops,ok:false,summary:'Source and destination are the same.'};
+  if(!FVM[s.src]&&!FVM[s.dst])return {hops,ok:false,summary:'Neither end is a VM in this VPC, so no VPC firewall is involved. Pick web-1 or db-1 as one end.'};
+  if(FVM[s.src]){if(!FVM[s.dst]&&p.port==='tcp:25'){hops.push(H('req','fw','Always blocked by Google','Egress to TCP 25 on an external IP is blocked before your rules are consulted. Use a mail relay on 587 or 465.',{k:'fw-always'}));return {hops,ok:false,summary:'Port 25 egress to the Internet is always blocked.'};}
+    const e=pass(s,p,'egress',s.src,hops);if(e.act!=='allow'){if(!e.r)hops.push(H('r-i2','fw','Implied allow egress','',{k:'fw-implied'}));return {hops,ok:false,summary:`Egress denied at the sender by <b>${e.r.name}</b>.`};}
+    if(!e.r)hops.push(H('r-i2','fw','p65535 implied-allow-egress','Nothing else matched, so egress is allowed by default.',{fw:'i2',act:'allow',k:'fw-implied'}));}
+  if(FVM[s.dst]){const e=pass(s,p,'ingress',s.dst,hops);if(e.act!=='allow')return {hops,ok:false,summary:e.r?`Ingress denied at ${FVM[s.dst].name} by <b>${e.r.name}</b> (p${e.r.p}).`:'Denied by the implied ingress rule.'};
+    hops.push(H('tgt-'+s.dst,'vpc',`Delivered to ${FVM[s.dst].name}`,'A connection-tracking entry is created, so the replies of this flow will be allowed automatically.',{k:'fw-stateful'}));return {hops,ok:true,summary:`Allowed by <b>${e.r.name}</b>. Replies ride the connection-tracking entry.`};}
+  hops.push(H('tgt-ext','inet',`Leaves the VPC toward ${EP[s.dst][0]}`,'Allowed at the sender. A connection-tracking entry is created, so the replies come back in even though ingress is denied by default.',{k:'fw-stateful'}));return {hops,ok:true,summary:'Egress allowed. The reply is let in by connection tracking (stateful).'};}
+VIEWS.push({id:'fw',tab:'Firewalls',title:'5 · Firewalls: who decides, in what order',
+  blurb:'Firewall policies are evaluated at the VM\'s vNIC, top to bottom: organization → folder → VPC rules → network policies → implied rules. VM-to-VM traffic is checked twice: egress at the sender, then ingress at the receiver.',
+  intro:'Build a packet with the controls, or pick a preset, then <b>Step</b> through it. The packet walks down the left edge of the policy stack, and the deciding rule lights up. Try "IAP → db-1 SSH", where a folder rule allows it and VPC rules are never consulted. Then switch the enforcement order and replay "web-1 → db-1".',
+  defaults:{src:'internet',dst:'web1',port:'tcp:443',order:'after',off:{}},
+  controls:[
+    {type:'select',key:'src',label:'Source',opts:Object.entries(EP).filter(([k])=>!['ext','gapi'].includes(k)).map(([k,v])=>[k,v[0]+' · '+v[1]])},
+    {type:'select',key:'dst',label:'Destination',opts:Object.entries(EP).filter(([k])=>['web1','db1','ext','gapi'].includes(k)).map(([k,v])=>[k,v[0]+' · '+v[1]])},
+    {type:'seg',key:'port',label:'Protocol:port',opts:[['tcp:22','22'],['tcp:80','80'],['tcp:443','443'],['tcp:3389','3389'],['tcp:5432','5432'],['tcp:25','25'],['icmp','icmp']]},
+    {type:'seg',key:'order',label:'Network policy',k:'fw-gnp',opts:[['after','after VPC rules (default)'],['before','before VPC rules']]}],
+  extra:s=>`<details style="margin-top:6px"><summary class="muted" style="font-size:12px;cursor:pointer">Enable / disable individual rules</summary><div class="ctl" style="margin-top:6px">${Object.entries(LAYERS).filter(([k])=>k!=='L-impl').map(([lid,L])=>L.rules.map(r=>`<label class="tg"><input type="checkbox" data-rule="${r.id}" ${s.off[r.id]?'':'checked'}><span style="font-family:var(--mono);font-size:11.5px">${r.id} · p${r.p} ${r.name}</span></label>`).join('')).join('')}</div></details>`,
+  bind(el,s){el.querySelectorAll('input[data-rule]').forEach(x=>x.onchange=()=>{s.off[x.dataset.rule]=!x.checked;S.step=-1;render();});},
+  onSet(key){if(['src','dst','port'].includes(key))S.scen.fw='custom';},
+  scenarios:[
+    {id:'custom',label:'Custom (use the controls)',run:evaluate},
+    {id:'https',label:'Internet → web-1 HTTPS',hint:'allow-web',preset:s=>Object.assign(s,{src:'internet',dst:'web1',port:'tcp:443'}),run:evaluate},
+    {id:'rdp',label:'Internet → web-1 RDP',hint:'org deny',preset:s=>Object.assign(s,{src:'internet',dst:'web1',port:'tcp:3389'}),run:evaluate},
+    {id:'ssh',label:'Internet → web-1 SSH',hint:'folder deny',preset:s=>Object.assign(s,{src:'internet',dst:'web1',port:'tcp:22'}),run:evaluate},
+    {id:'iap',label:'IAP → db-1 SSH',hint:'folder allow',preset:s=>Object.assign(s,{src:'iap',dst:'db1',port:'tcp:22'}),run:evaluate},
+    {id:'w2d',label:'web-1 → db-1 Postgres',hint:'2 passes · SA rule',preset:s=>Object.assign(s,{src:'web1',dst:'db1',port:'tcp:5432'}),run:evaluate},
+    {id:'i2d',label:'Internet → db-1 Postgres',hint:'network policy',preset:s=>Object.assign(s,{src:'internet',dst:'db1',port:'tcp:5432'}),run:evaluate},
+    {id:'hc',label:'Health checker → web-1:80',hint:'org allow',preset:s=>Object.assign(s,{src:'hc',dst:'web1',port:'tcp:80'}),run:evaluate},
+    {id:'bad',label:'Known-bad host → web-1:443',hint:'org deny wins',preset:s=>Object.assign(s,{src:'bad',dst:'web1',port:'tcp:443'}),run:evaluate},
+    {id:'dbx',label:'db-1 → Internet HTTPS',hint:'egress deny',preset:s=>Object.assign(s,{src:'db1',dst:'ext',port:'tcp:443'}),run:evaluate},
+    {id:'dbg',label:'db-1 → Google APIs',hint:'priority beats',preset:s=>Object.assign(s,{src:'db1',dst:'gapi',port:'tcp:443'}),run:evaluate},
+    {id:'smtp',label:'web-1 → mail server :25',hint:'always blocked',preset:s=>Object.assign(s,{src:'web1',dst:'ext',port:'tcp:25'}),run:evaluate}],
+  draw(s,hits){let o='';const hitR={};hits.forEach(h=>{if(h.fw)hitR[h.fw]=h.act;});const p=pkt(s);
+    o+=box('req',20,40,250,74,'Packet','fw-req','fbox','');o+=T(30,76,`${p.src} → ${p.dst}`,'sm mono')+T(30,92,`${p.port} · ${FVM[s.src]?'egress + ':''}${FVM[s.dst]?'ingress':'(egress only)'}`,'sm mono')+T(30,106,`${EP[s.src][0]} → ${EP[s.dst][0]}`,'xs');N.req={x:290,y:77};
+    o+=`<text x="30" y="140" class="sm">Evaluated top → bottom ↓</text>`;
+    let y=40;const X=300,W=610;
+    order(s).forEach(lid=>{const Lr=LAYERS[lid];P(lid,X-12,y+12);
+      o+=`<g class="nd" data-id="${lid}" data-k="${Lr.k}"><rect x="${X}" y="${y}" width="${W}" height="24" rx="5" style="fill:var(--fw-bg);stroke:var(--fw)"/>${T(X+10,y+16,Lr.t,'lbl b')}</g>`+ii(X+W-12,y+12,Lr.k);y+=28;
+      if(!Lr.rules.length){o+=T(X+14,y+12,'(no rules)','sm');y+=20;}
+      Lr.rules.forEach(r=>{P('r-'+r.id,X-12,y+9);const off=s.off[r.id],h=hitR[r.id];const cls=h?('hit '+(h==='goto_next'?'goto':h)):'';
+        o+=`<g class="nd rule ${off?'offr':''} ${cls}" data-id="r-${r.id}" data-k="${Lr.k}"><rect x="${X+6}" y="${y}" width="${W-12}" height="18" rx="3"/>`+
+          `<text x="${X+14}" y="${y+13}">p${r.p}</text><text x="${X+64}" y="${y+13}" style="fill:${r.dir==='ingress'?'var(--gbb-ink)':'var(--inet-ink)'}">${r.dir}</text><text x="${X+122}" y="${y+13}" style="fill:${r.act==='allow'?'var(--ok)':r.act==='deny'?'var(--bad)':'var(--iam-ink)'}">${r.act}</text>`+
+          `<text x="${X+192}" y="${y+13}">${esc(r.peer.length>27?r.peer.slice(0,26)+'…':r.peer)}</text><text x="${X+382}" y="${y+13}">${esc(portsTxt(r.ports))}</text><text x="${X+482}" y="${y+13}" style="fill:var(--vpc-ink)">${esc(r.target)}</text></g>`;y+=20;});
+      y+=8;});
+    o+=`<line x1="${X-12}" y1="48" x2="${X-12}" y2="${y-14}" style="stroke:color-mix(in srgb,var(--fw) 35%,transparent);stroke-width:2"/>`;
+    o+=T(X+482,36,'target','xs')+T(X+192,36,'source / destination','xs')+T(X+382,36,'ports','xs');
+    /* targets */
+    [['web1',40],['db1',150]].forEach(([k,yy])=>{const v=FVM[k];P('tgt-'+k,935,yy+40);
+      o+=`<g class="nd vm" data-id="tgt-${k}" data-k="fw-target"><rect x="935" y="${yy}" width="245" height="90" rx="6"/>${T(947,yy+18,v.name+' · '+v.ip,'lbl b')}${T(947,yy+36,'network tags: '+v.tags.join(', '),'sm mono')}${T(947,yy+52,'service account: '+v.sa,'sm mono')}${T(947,yy+72,'rules enforced at this vNIC','xs')}</g>`+ii(1170,yy+10,'fw-target');});
+    P('tgt-ext',1057,300);o+=cloud('tgt-ext',1057,300,110,24,'Outside the VPC','internet',`${EP.ext[1]} · ${EP.gapi[1]}`);
+    /* conntrack */
+    const ok=S.trace&&S.trace.ok&&S.step>=S.trace.hops.length-1;
+    o+=`<g class="nd" data-id="ct" data-k="fw-stateful"><rect x="935" y="345" width="245" height="105" rx="6" style="fill:var(--surface-2);stroke:var(--line)"/>${T(947,363,'CONNECTION TRACKING','hd').replace('class="hd"','class="hd" style="fill:var(--fw)"')}${ok?T(947,384,`${p.src}:ephemeral ⇄`,'sm mono')+T(947,398,`${p.dst}:${p.port.split(':')[1]||'icmp'} ESTABLISHED`,'sm mono')+T(947,420,'Replies of this flow are allowed','xs')+T(947,432,'even against the implied deny ingress.','xs'):T(947,388,'(an entry appears when a flow is allowed)','xs')}</g>`+ii(1170,355,'fw-stateful');
+    o+=box('armor',935,465,245,52,'Cloud Armor is not here','cloud-armor','gbox','it runs at the GFE edge, L7');
+    o+=callout(X+W,60,X+W+10,555,'Allow/deny in a hierarchical\npolicy is final; goto_next\nhands down a level');
+    return o;},
+  promptCtx:s=>{const off=Object.keys(s.off).filter(k=>s.off[k]);return `Packet: ${EP[s.src][0]} (${EP[s.src][1]}) → ${EP[s.dst][0]} (${EP[s.dst][1]}) on ${s.port}. Network firewall policy is evaluated ${s.order} VPC rules.${off.length?' Disabled rules: '+off.join(', ')+'.':''}`;}
+});
+})();
+</script>
+<script>
+/* ================= VIEW 6 · PROJECTS & SHARED VPC ================= */
+(()=>{
+VIEWS.push({id:'shared',tab:'Projects & Shared VPC',title:'6 · The project dimension: Shared VPC',
+  blurb:'Projects are ownership, IAM and billing boundaries. VPCs are network boundaries. Shared VPC splits the two: a host project owns the network, and service projects own the workloads whose NICs plug into it.',
+  intro:'Dashed lines show a VM in a <b>service project</b> with its NIC in a <b>host project</b> subnet. Packets between the two service projects never leave the one shared VPC. IAM (the yellow strip) controls who may <i>use</i> which subnet.',
+  defaults:{fwWebPay:true,grant:false,peerDev:false},
+  controls:[
+    {type:'toggle',key:'fwWebPay',label:'Host firewall rule: allow subnet-web → tag:pay tcp:8443',k:'net-res'},
+    {type:'toggle',key:'grant',label:'Grant svc-web devs networkUser on subnet-pay',k:'network-user'},
+    {type:'toggle',key:'peerDev',label:'Peer dev-vpc with shared-vpc',k:'peering'}],
+  scenarios:[
+    {id:'w2p',label:'web-1 (svc-web) → pay-1 (svc-payments)',hint:'tcp:8443',run:s=>{const hops=[H('web1','iam','web-1 · VM in project svc-web','The VM resource, its IAM and its billing live in svc-web. Its NIC sits in <b>subnet-web of the host project</b>.',{k:'service-project'}),
+      H('nicw','vpc','NIC 10.10.0.2 · subnet-web (host)','The route lookup uses the <b>host project\'s</b> shared-vpc route table. 10.10.1.0/24 is a subnet route.',{k:'nic'}),
+      H('fwh','fw','Firewall rules in the host project',s.fwWebPay?'<b>allow-web-to-pay</b> (10.10.0.0/24 → tag:pay, tcp:8443) matched. The central network team owns this rule.':'No rule allows it, so the implied deny ingress drops it. A service project admin <b>cannot</b> add one: rules live in the host project.',{k:'net-res'})];
+      if(!s.fwWebPay)return {hops,ok:false,summary:'Same network, but no rule allows it. Only the host project can change that.'};
+      hops.push(H('nicp','vpc','NIC 10.10.1.2 · subnet-pay (host)','',{k:'nic'}),H('pay1','iam','pay-1 · VM in project svc-payments','Delivered across a <b>project boundary</b> over internal IPs. It is one VPC, so no peering is needed.',{k:'service-project'}));
+      return {hops,ok:true,summary:'Two projects, one network. Projects separate ownership, not packets.'};}},
+    {id:'iam',label:'svc-web dev creates a VM in subnet-pay',hint:'IAM',run:s=>{const hops=[H('iamw','iam','svc-web developer','gcloud compute instances create x --project=svc-web --subnet=projects/net-host-prod/regions/us-central1/subnetworks/subnet-pay',{k:'service-project'}),
+      H('iamp','iam','IAM check: compute.subnetworks.use',s.grant?'Granted by roles/compute.networkUser <b>on subnet-pay</b>.':'<b>Denied.</b> The team holds networkUser on subnet-web only. Per-subnet grants keep each team in its own address space.',{k:'iam-check'})];
+      if(!s.grant)return {hops,ok:false,summary:'IAM, not the network, decides which subnet a team may use.'};hops.push(H('nicp','vpc','NIC created in subnet-pay','The VM gets an address from 10.10.1.0/24.',{k:'nic'}));return {hops,ok:true,summary:'Allowed by a per-subnet networkUser grant.'};}},
+    {id:'dev',label:'dev-1 (standalone project) → pay-1',hint:'other VPC',run:s=>{const hops=[H('dev1','iam','dev-1 · VM in dev-sandbox','Sends to 10.10.1.2.',{k:'standalone'}),H('devvpc','vpc','dev-vpc route lookup',s.peerDev?'<b>10.10.0.0/16</b> was learned through the peering with shared-vpc.':'No route matches 10.10.1.2. The default route\'s internet gateway drops private destinations.',{k:'route-table'})];
+      if(!s.peerDev)return {hops,ok:false,summary:'Different VPC means a different routing domain. Being in the same organization doesn\'t connect them.'};
+      hops.push(H('peerdev','vpc','VPC peering dev-vpc ↔ shared-vpc','Route exchange only. Packets flow as if inside one VPC.',{k:'peering'}),H('fwh','fw','Host project firewall','It must allow 10.50.0.0/24 (assumed here). Each side keeps its own firewall.',{k:'net-res'}),H('nicp','vpc','NIC 10.10.1.2','',{k:'nic'}),H('pay1','iam','pay-1','Delivered.',{k:'service-project'}));return {hops,ok:true,summary:'Peering joined two separately owned VPCs.'};}},
+    {id:'nat',label:'web-1 → Internet via host Cloud NAT',hint:'shared egress',run:s=>({hops:[H('web1','iam','web-1 (no external IP)','',{k:'service-project'}),H('nicw','vpc','NIC in subnet-web','Default route → default-internet-gateway.',{k:'nic'}),H('nath','vpc','Cloud NAT (host project)','Egress for every service project is configured centrally, once.',{k:'cloud-nat'}),H('inets','inet','Internet','Delivered. Egress cost is attributed to the project that owns the VM (svc-web).',{k:'internet'})],ok:true,summary:'Central network services (NAT, VPN, Interconnect) live once in the host project.'})}],
+  draw(s){let o='';
+    o+=box('org',520,10,170,34,'Organization','org','ibox','example.com');
+    o+=cloud('inets',80,40,60,20,'Internet','internet');
+    [['fi',215,'Folder · Shared infra'],['fp',660,'Folder · Prod'],['fd',960,'Folder · Dev']].forEach(([id,x,l])=>{o+=box(id,x,72,170,30,l,'folder','ibox','',{center:true,noi:true});o+=L([[605,44],[605,58],[x+85,58],[x+85,72]],'dl');});
+    o+=frame(20,122,555,410,'Host project · net-host-prod','host-project','var(--iam)','owns the VPC, routes, firewalls, NAT and hybrid links');
+    o+=frame(35,160,525,280,'shared-vpc (global)','shared-vpc','var(--vpc)','');
+    const sn=(id,x,y,w,h,l,sub)=>`<g class="nd" data-id="${id}" data-k="subnet"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" style="fill:var(--vpc-bg);stroke:var(--vpc)"/>${T(x+8,y+15,l,'sm mono b').replace('class="sm mono b"','class="sm mono b" style="fill:var(--vpc-ink)"')}${T(x+8,y+28,sub,'xs')}</g>`;
+    o+=sn('snw',50,195,240,115,'subnet-web 10.10.0.0/24','us-central1 · used by svc-web');o+=sn('snp',305,195,240,115,'subnet-pay 10.10.1.0/24','us-central1 · used by svc-payments');o+=sn('sne',50,322,495,105,'subnet-eu 10.20.0.0/24','europe-west1 · unused');
+    o+=box('nicw',110,250,120,34,'NIC 10.10.0.2','nic','vbox','web-1\'s interface');o+=box('nicp',365,250,120,34,'NIC 10.10.1.2','nic','vbox','pay-1\'s interface');
+    [['fwh',40,'Firewall rules'],['rth',172,'Routes'],['nath',304,'Cloud NAT'],['ich',436,'VPN / Interconnect']].forEach(([id,x,l])=>{o+=box(id,x,460,122,34,l,'net-res',id==='fwh'?'fbox':'vbox','host-owned');});
+    o+=L([[365,460],[365,300]],'dl');
+    o+=frame(600,122,290,195,'Service project · svc-web','service-project','var(--iam)','folder Prod');
+    o+=frame(600,337,290,195,'Service project · svc-payments','service-project','var(--iam)','folder Prod');
+    o+=vm('web1',745,220,'web-1','VM lives here');o+=vm('pay1',745,435,'pay-1','VM lives here');
+    o+=box('iamw',650,262,190,30,'svc-web developer','service-project','ibox','',{center:true});
+    o+=`<path class="dl" d="M701,220 C560,200 300,240 230,262" style="stroke:var(--iam);opacity:.9"/><path class="dl" d="M701,435 C600,420 520,300 485,270" style="stroke:var(--iam);opacity:.9"/>`;
+    o+=T(330,178,'- - - VM in service project, NIC in host subnet','xs');
+    o+=frame(910,122,270,410,'Standalone project · dev-sandbox','standalone','var(--iam)','folder Dev');
+    o+=frame(925,165,240,190,'dev-vpc 10.50.0.0/24','dev-vpc','var(--neutral)','its own route table');
+    o+=vm('dev1',1045,250,'dev-1','10.50.0.2');P('devvpc',1045,320);o+=box('devvpc',985,305,120,30,'dev-vpc routes','route-table','vbox','',{center:true,noi:true});
+    P('peerdev',900,300);o+=`<g class="nd" data-id="peerdev" data-k="peering"><circle cx="900" cy="300" r="13" style="fill:${s.peerDev?'var(--ok-bg)':'var(--off-bg)'};stroke:${s.peerDev?'var(--vpc)':'var(--dim)'};stroke-width:1.5"/>${T(900,304,'⇄','lbl','middle')}</g>`;
+    if(s.peerDev)o+=L([[925,300],[913,300]],'vl')+L([[887,300],[560,300]],'vl');
+    /* IAM strip */
+    o+=`<rect x="20" y="548" width="1160" height="122" rx="8" style="fill:var(--iam-bg);stroke:var(--iam)"/>`+T(32,566,'IAM · who may use which part of the network','hd').replace('class="hd"','class="hd" style="fill:var(--iam)"')+ii(1168,560,'lens-iam');
+    o+=box('iamx',40,580,350,72,'Network team','xpn-admin','ibox','roles/compute.xpnAdmin (org/folder)');o+=T(50,642,'enables the host, attaches service projects, owns rules','xs');
+    o+=box('iamwn',415,580,350,72,'svc-web devs → subnet-web','network-user','ibox','roles/compute.networkUser ✓');o+=T(425,642,'may create NICs in subnet-web only','xs');
+    o+=box('iamp',790,580,370,72,'svc-web devs → subnet-pay','iam-check','ibox',`roles/compute.networkUser ${s.grant?'✓ granted':'✕ not granted'}`);o+=T(800,642,s.grant?'may also use subnet-pay':'compute.subnetworks.use denied','xs');
+    return o;},
+  promptCtx:s=>{const a=[];if(!s.fwWebPay)a.push('host firewall rule web→pay removed');if(s.grant)a.push('svc-web granted networkUser on subnet-pay');if(s.peerDev)a.push('dev-vpc peered with shared-vpc');return a.length?'Settings: '+a.join(', ')+'.':'';}
+});
+})();
+
+/* ================= VIEW 7 · PEERING & BEYOND ================= */
+(()=>{
+function routesA(s){const r=[{dst:'10.10.0.0/16',nh:'subnet routes · vpc-a (local)'}];
+  if(s.ncc){r.push({dst:'10.20.0.0/16',nh:'NCC hub · spoke vpc-b'});if(!s.overlap)r.push({dst:'10.30.0.0/16',nh:'NCC hub · spoke vpc-c'});}else r.push({dst:'10.20.0.0/16',nh:'peering vpc-a ↔ vpc-b'});
+  r.push({dst:'10.100.0.0/20',nh:'peering · servicenetworking (PSA)'},{dst:'192.168.0.0/16',nh:'dynamic · Cloud Router (HA VPN)'},{dst:'0.0.0.0/0',nh:'default-internet-gateway'});return r;}
+const look=(s,ip,hops)=>{const r=lpm(routesA(s),ip);hops.push(H('vmA','vpc','vpc-a route lookup',`${ip} matches <b>${r.dst}</b> → ${r.nh}.`,{rt:r.dst,k:'route-table'}));return r;};
+VIEWS.push({id:'peering',tab:'Peering & beyond',title:'7 · Between VPCs: peering, NCC, PSA, PSC',
+  blurb:'Ways to connect separate VPCs, and why peering is non-transitive. vpc-a peers with vpc-b, and vpc-b peers with vpc-c. On-prem hangs off vpc-a. Cloud SQL lives in a Google-managed VPC. A partner SaaS is reached through Private Service Connect.',
+  intro:'Watch vpc-a\'s route table at the bottom. <b>A route that isn\'t in the table is a destination you can\'t reach.</b> Try vm-a → vm-c (it fails), then turn on the NCC hub. Try on-prem → Cloud SQL, then turn on custom route exchange.',
+  defaults:{ncc:false,custom:false,overlap:false},
+  controls:[
+    {type:'toggle',key:'ncc',label:'Replace peerings with an NCC hub (VPC spokes)',k:'ncc'},
+    {type:'toggle',key:'custom',label:'Export/import custom routes + Cloud Router custom advertisement',k:'custom-routes'},
+    {type:'toggle',key:'overlap',label:'vpc-c uses 10.10.0.0/16 (overlaps vpc-a)',k:'overlap'}],
+  extra:()=>`<details style="margin-top:6px" open><summary class="muted" style="font-size:12px;cursor:pointer">Shared VPC vs peering vs NCC vs PSC</summary><table class="cmp"><tr><th></th><th>Scope</th><th>Transitive</th><th>Overlap OK</th></tr>
+    <tr><td>Shared VPC</td><td>one VPC, many projects (one org)</td><td>n/a</td><td>no</td></tr><tr><td>Peering</td><td>VPC ↔ VPC, any org</td><td>no</td><td>no</td></tr>
+    <tr><td>NCC hub</td><td>many VPCs + hybrid</td><td>yes (spokes)</td><td>no*</td></tr><tr><td>PSC</td><td>one service</td><td>n/a</td><td>yes</td></tr></table></details>`,
+  scenarios:[
+    {id:'ab',label:'vm-a → vm-b',hint:'peered',run:s=>{const hops=[H('vmA','vpc','vm-a 10.10.0.2 sends to 10.20.0.2','',{k:'vm'})];look(s,'10.20.0.2',hops);
+      hops.push(H(s.ncc?'hub':'pAB','vpc',s.ncc?'NCC hub':'Peering vpc-a ↔ vpc-b',s.ncc?'The hub propagated vpc-b\'s subnet routes to every spoke.':'Both sides created the peering, so their subnet routes were exchanged. <b>There is no tunnel and no gateway</b>: Andromeda delivers host to host.',{k:s.ncc?'ncc':'peering'}),H('vmB','vpc','vm-b 10.20.0.2','vpc-b\'s own ingress firewall must allow 10.10.0.0/16.',{k:'vm'}));return {hops,ok:true,summary:'Direct VPC-to-VPC delivery with internal IPs.'};}},
+    {id:'ac',label:'vm-a → vm-c (through b?)',hint:'non-transitive',run:s=>{const ip=s.overlap?'10.10.0.2':'10.30.0.2';const hops=[H('vmA','vpc',`vm-a sends to ${ip} (vm-c)`,'',{k:'vm'})];const r=look(s,ip,hops);
+      if(s.overlap){hops.push(H('vmA','vpc','That is vpc-a\'s own range','vm-c\'s address falls inside vpc-a\'s own subnet. The packet stays in vpc-a and never reaches vm-c.'+(s.ncc?' NCC also refuses vpc-c as a spoke, because its ranges overlap.':''),{k:'overlap'}));return {hops,ok:false,summary:'Overlapping ranges cannot be routed between. Re-address, or use PSC or NAT.'};}
+      if(s.ncc){hops.push(H('hub','vpc','NCC hub','The hub exchanges routes among <b>all</b> spokes, so it is transitive.',{k:'ncc'}),H('vmC','vpc','vm-c 10.30.0.2','Delivered.',{k:'vm'}));return {hops,ok:true,summary:'NCC gives hub-and-spoke transitivity that peering cannot.'};}
+      hops.push(H('pAB','vpc','vpc-b knows 10.30.0.0/16, but does not re-export it','vpc-b learned vpc-c\'s routes from the B↔C peering, but <b>peering routes are never re-exported</b> to another peer.',{k:'non-transitive'}),H('vmA','vpc','Falls through to 0.0.0.0/0, then dropped','The internet gateway won\'t deliver to a private address.',{k:'igw'}));return {hops,ok:false,summary:'Peering is non-transitive. Peer A↔C directly, or use an NCC hub.'};}},
+    {id:'ob',label:'On-prem → vm-b (via vpc-a)',hint:'transit',run:s=>{const hops=[H('onp','hyb','On-prem host 192.168.1.10 → 10.20.0.2',(s.custom||s.ncc)?'The on-prem router learned 10.20.0.0/16 from Cloud Router.':'The on-prem router has <b>no route</b> to 10.20.0.0/16. Cloud Router advertises only vpc-a\'s own subnets by default.',{k:'cr-a'})];
+      if(!s.custom&&!s.ncc)return {hops,ok:false,summary:'Needs (1) a Cloud Router custom advertisement of 10.20.0.0/16 and (2) export custom routes on A→B / import on B, so vpc-b has a route back.'};
+      hops.push(H('hyA','hyb','HA VPN / Interconnect','',{k:'hy-link'}),H('crA','hyb','Into vpc-a (Cloud Router set up the routes)','Cloud Router is not in the data path. It only advertised the range.',{k:'cr-a'}),H(s.ncc?'hub':'pAB','vpc',s.ncc?'NCC hub (VPN as hybrid spoke)':'Peering with custom routes',s.ncc?'Hybrid and VPC spokes share routes through the hub.':'vpc-b <b>imported</b> 192.168.0.0/16 from vpc-a, so replies have a path home.',{k:s.ncc?'ncc':'custom-routes'}),H('vmB','vpc','vm-b','Delivered.',{k:'vm'}));return {hops,ok:true,summary:'Transit through a peered VPC needs both directions configured explicitly.'};}},
+    {id:'sql',label:'vm-a → Cloud SQL (private IP)',hint:'PSA',run:s=>{const hops=[H('vmA','vpc','vm-a → 10.100.0.3:5432','',{k:'vm'})];look(s,'10.100.0.3',hops);
+      hops.push(H('pPSA','vpc','Private services access peering','Service Networking peered vpc-a with Google\'s producer VPC. Cloud SQL got 10.100.0.3 from your <b>allocated range</b>.',{k:'psa'}),H('sql','vpc','Cloud SQL instance','Delivered with no public IP.',{k:'psa'}));return {hops,ok:true,summary:'PSA is peering under the hood, with all of peering\'s rules.'};}},
+    {id:'osql',label:'On-prem → Cloud SQL',hint:'PSA transit',run:s=>{const hops=[H('onp','hyb','On-prem → 10.100.0.3',s.custom?'Cloud Router custom advertisement includes 10.100.0.0/20.':'There is no route to 10.100.0.0/20 on-prem.',{k:'cr-a'})];
+      if(!s.custom)return {hops,ok:false,summary:'Same non-transitivity: advertise the PSA range to on-prem, and export custom routes on the servicenetworking peering so Cloud SQL can reply.'};
+      hops.push(H('hyA','hyb','HA VPN / Interconnect','',{k:'hy-link'}),H('crA','hyb','vpc-a','',{k:'cr-a'}),H('pPSA','vpc','PSA peering (export custom routes on)','The producer VPC imported 192.168.0.0/16, so the reply path exists.',{k:'custom-routes'}),H('sql','vpc','Cloud SQL','Delivered.',{k:'psa'}));return {hops,ok:true,summary:'Hybrid access to a managed service over its peering.'};}},
+    {id:'psc',label:'vm-a → partner SaaS via PSC endpoint',hint:'no route exchange',run:s=>({hops:[H('vmA','vpc','vm-a → 10.10.9.9:443','10.10.9.9 is a <b>PSC endpoint</b>, an IP in vpc-a\'s own subnet. That is why the route is local.',{k:'psc',rt:'10.10.0.0/16'}),H('pscE','vpc','PSC endpoint (forwarding rule)','It maps to the producer\'s service attachment. No routes are exchanged.',{k:'psc'}),H('att','vpc','Service attachment (producer)','The producer NATs consumer traffic from its PSC NAT subnet, and approves which consumer projects may connect.',{k:'svc-att'}),H('ilb','vpc','Producer internal LB → backends','Delivered, even though the producer also uses 10.10.0.0/16.',{k:'psc'})],ok:true,summary:'PSC publishes one service, not a whole network. Overlap does not matter.'})},
+    {id:'mk',label:'Create peering vpc-a ↔ vpc-c',hint:'overlap check',run:s=>({hops:[H('vmA','vpc','gcloud compute networks peerings create a-to-c …',''),H('vmC','vpc',s.overlap?'Rejected: overlapping subnet ranges':'Peering ACTIVE',s.overlap?'Both VPCs contain 10.10.0.0/16. Peering requires unique subnet ranges.':'Now A↔C works directly. With n VPCs a full mesh needs n(n−1)/2 peerings, which is why NCC exists.',{k:s.overlap?'overlap':'peering'})],ok:!s.overlap,summary:s.overlap?'Plan IP ranges before you connect networks.':'Direct peering added. It is still non-transitive.'})}],
+  draw(s,hits){let o='';const rh=[...hits].reverse().find(h=>h.rt);
+    const vpcBox=(x,l,sub)=>frame(x,50,300,200,l,'vpc','var(--vpc)',sub);
+    o+=vpcBox(30,'vpc-a · project team-a','10.10.0.0/16');o+=vpcBox(450,'vpc-b · project team-b','10.20.0.0/16');o+=vpcBox(870,'vpc-c · project partner (other org)',s.overlap?'10.10.0.0/16 ⚠ overlap':'10.30.0.0/16');
+    o+=vm('vmA',180,150,'vm-a','10.10.0.2');o+=vm('vmB',600,150,'vm-b','10.20.0.2');o+=vm('vmC',1020,150,'vm-c',s.overlap?'10.10.0.2':'10.30.0.2');
+    o+=box('pscE',200,200,120,36,'PSC endpoint','psc','vbox','10.10.9.9');o+=box('crA',45,200,120,36,'Cloud Router','cr-a','hbox','advertises 10.10/16');
+    const peer=(id,x,on,lab)=>{P(id,x,150);return `<line x1="${x-60}" y1="150" x2="${x+60}" y2="150" class="vl" style="opacity:${on?.8:.2};stroke-width:3"/><g class="nd" data-id="${id}" data-k="peering"><circle cx="${x}" cy="150" r="14" style="fill:${on?'var(--ok-bg)':'var(--off-bg)'};stroke:${on?'var(--vpc)':'var(--dim)'};stroke-width:1.5"/>${T(x,154,'⇄','lbl','middle')}</g>${T(x,180,lab,'xs','middle')}`;};
+    o+=peer('pAB',390,!s.ncc,'peering');o+=peer('pBC',810,!s.ncc,'peering');
+    o+=T(600,40,'vpc-b knows both a and c, but re-exports neither','xs','middle');
+    P('hub',600,310);o+=`<g class="nd" data-id="hub" data-k="ncc" style="opacity:${s.ncc?1:.35}"><rect x="530" y="292" width="140" height="36" rx="18" style="fill:var(--vpc-bg);stroke:var(--vpc);stroke-width:${s.ncc?2:1}"/>${T(600,309,'NCC hub','lbl b','middle')}${T(600,321,s.ncc?'spokes: a, b'+(s.overlap?'':', c'):'(off)','xs','middle')}</g>`+ii(662,300,'ncc');
+    if(s.ncc){o+=L([[180,250],[540,305]],'vl')+L([[600,250],[600,292]],'vl');if(!s.overlap)o+=L([[1020,250],[660,305]],'vl');else o+=L([[1020,250],[660,305]],'vl down-l');}
+    o+=frame(30,430,300,110,'On-premises','onprem','var(--hyb)','192.168.0.0/16');o+=box('onp',110,480,140,36,'On-prem host','onprem','hbox','192.168.1.10');
+    o+=box('hyA',110,335,140,34,'HA VPN / Interconnect','hy-link','hbox','');o+=L([[180,430],[180,369]],'hl')+L([[180,335],[105,236]],'hl');
+    o+=frame(400,380,380,130,'Google producer VPC (servicenetworking)','psa','var(--vpc)','allocated range 10.100.0.0/20');o+=box('sql',520,440,140,36,'Cloud SQL','psa','vbox','10.100.0.3');
+    P('pPSA',330,360);o+=`<g class="nd" data-id="pPSA" data-k="psa"><circle cx="330" cy="360" r="13" style="fill:var(--ok-bg);stroke:var(--vpc);stroke-width:1.5"/>${T(330,364,'⇄','lbl','middle')}</g>`+L([[250,250],[322,350]],'vl')+L([[341,368],[400,420]],'vl')+T(345,345,'PSA peering','xs');
+    o+=frame(820,290,360,170,'SaaS producer VPC (another org)','svc-att','var(--vpc)','10.10.0.0/16: overlap is fine with PSC');
+    o+=box('att',840,350,140,36,'Service attachment','svc-att','vbox','PSC NAT subnet');o+=box('ilb',1010,350,150,36,'Internal LB → app','psc','vbox','');
+    o+=L([[320,218],[460,260],[790,345],[840,365]],'gl')+T(560,272,'PSC: per-service, NAT, no routes','xs');
+    o+=routeTable(400,530,780,`Route table · vpc-a (what vm-a can reach)`,routesA(s),rh&&rh.rt);
+    o+=callout(390,165,330,290,'Exchanges route entries:\nno tunnel, no Cloud Router');
+    return o;},
+  promptCtx:s=>{const a=[];if(s.ncc)a.push('NCC hub instead of peerings');if(s.custom)a.push('custom route export/import and custom advertisement on');if(s.overlap)a.push('vpc-c overlaps vpc-a');return a.length?'Settings: '+a.join(', ')+'.':'';}
+});
+})();
+/* ================= SOURCES (per view) =================
+   consulted = actually opened/searched in this session · docs = Google Cloud pages for verifying facts written from model knowledge */
+const PCSE2=['PCSE course · Section 2: Securing Communications and Establishing Boundary Protection (PDF)','https://storage.googleapis.com/cloud-training/T-GCPPCS-B/1.0/on-demand/PCSE_Section_2_Securing_Communications_and_Establishing_Boundary_Protection_v1.0.pdf'];
+const NOTES='Source: the compiled notes "Google Cloud Networking" (PDF)';
+const SOURCES={
+ backbone:{consulted:[['Network edge locations (200+ locations)','https://docs.cloud.google.com/vpc/docs/edge-locations'],['Global locations: regions & zones (43 regions / 130 zones, updated Oct 2026)','https://cloud.google.com/about/locations'],['Google global network principles and innovations (blog)','https://cloud.google.com/blog/products/networking/google-global-network-principles-and-innovations'],['Global, regional, and zonal resources','https://docs.cloud.google.com/compute/docs/regions-zones/global-regional-zonal-resources'],['Geography and regions (Cloud Storage redundancy, DR guidance)','https://docs.cloud.google.com/docs/geography-and-regions'],['Regional disks (synchronous 2-zone replication)','https://docs.cloud.google.com/compute/docs/disks/regional-persistent-disk'],['Building blocks of reliability','https://docs.cloud.google.com/architecture/infra-reliability-guide/building-blocks']],
+  docs:[['Regions and zones','compute/docs/regions-zones'],['Network Service Tiers','network-tiers/docs/overview'],['External Application Load Balancer (GFE)','load-balancing/docs/https'],['Cloud CDN overview','cdn/docs/overview'],['Media CDN overview','media-cdn/docs/overview'],['Encryption in transit','docs/security/encryption-in-transit']],
+  tan:['§1.2.4 Wide Area Networks','§1.2.5 Internetworks','§2.2.5 Fiber Optics','§5.2.9 Anycast Routing','§5.6.7 BGP','§6.5.5 TCP Connection Establishment','§7.5.3 Content Delivery Networks'],
+  notes:['"The Only Three Networks You Need" (Internet / backbone / VPC framing)','"Google\'s Fiber Optic Network / Backbone"','Postal Service / Autobahn mental model']},
+ hybrid:{consulted:[['Cloud Interconnect FAQ (attachment capacities)','https://docs.cloud.google.com/network-connectivity/docs/interconnect/support/faq'],['Cloud Interconnect quotas and limits','https://docs.cloud.google.com/network-connectivity/docs/interconnect/quotas'],['Cloud Interconnect release notes (400 Gbps GA)','https://docs.cloud.google.com/network-connectivity/docs/interconnect/release-notes'],['Cloud Interconnect overview','https://docs.cloud.google.com/network-connectivity/docs/interconnect/concepts/overview'],PCSE2],
+  docs:[['Choosing a Network Connectivity product','network-connectivity/docs/how-to/choose-product'],['Dedicated Interconnect','network-connectivity/docs/interconnect/concepts/dedicated-overview'],['Partner Interconnect','network-connectivity/docs/interconnect/concepts/partner-overview'],['Cross-Cloud Interconnect','network-connectivity/docs/interconnect/concepts/cci-overview'],['Cloud VPN overview','network-connectivity/docs/vpn/concepts/overview'],['Cloud Router overview','network-connectivity/docs/router/concepts/overview'],['Direct Peering','network-connectivity/docs/direct-peering'],['Carrier Peering','network-connectivity/docs/carrier-peering'],['MACsec for Cloud Interconnect','network-connectivity/docs/interconnect/concepts/macsec-overview'],['Private Google Access for on-prem hosts','vpc/docs/private-google-access-hybrid']],
+  tan:['§4.3 Ethernet','§4.8.5 Virtual LANs (802.1Q)','§5.5.3 Tunneling','§5.6.5 Label Switching and MPLS','§5.6.7 BGP','§8.6.1 IPsec','§8.6.3 Virtual Private Networks'],
+  notes:['"Hybrid Connectivity" table (Cloud VPN, Dedicated, Partner)','Cloud Router description (corrected here: control plane only)']},
+ vpc:{consulted:[PCSE2],
+  docs:[['VPC networks','vpc/docs/vpc'],['Subnets','vpc/docs/subnets'],['Routes','vpc/docs/routes'],['Cloud NAT overview','nat/docs/overview'],['Private Google Access','vpc/docs/private-google-access'],['IAP TCP forwarding','iap/docs/using-tcp-forwarding'],['IP addresses','vpc/docs/ip-addresses'],['Best practices for VPC design','architecture/best-practices-vpc-design'],['Andromeda 2.2 (blog)','blog/products/networking/google-cloud-networking-in-depth-how-andromeda-2-2-enables-high-throughput-vms']],
+  tan:['§4.8.4 Repeaters, Hubs, Bridges, Switches, Routers, and Gateways','§5.5 Internetworking','§5.5.3 Tunneling','§5.6.2 IP Addresses (longest-prefix match, NAT)'],
+  notes:['"VPC", "VPC Subnets"','"Case 1: Same VPC Communication"','"Case 3: VPC to Public Internet Communication"']},
+ addr:{consulted:[PCSE2],
+  docs:[['Subnets: reserved IPs and valid ranges','vpc/docs/subnets'],['IP addresses','vpc/docs/ip-addresses'],['Alias IP ranges','vpc/docs/alias-ip'],['Health check source ranges','load-balancing/docs/health-check-concepts'],['Configure Private Google Access (private/restricted VIPs)','vpc/docs/configure-private-google-access'],['Metadata server','compute/docs/metadata/overview']],
+  tan:['§5.6.1 The IP Version 4 Protocol','§5.6.2 IP Addresses (CIDR, subnets, NAT)'],
+  notes:['"IP Ranges" (CIDR)','5a IP Address · 5b Router · 5c Subnet Mask · 5d Default Gateway']},
+ fw:{consulted:[PCSE2],
+  docs:[['About firewalls','firewall/docs/about-firewalls'],['VPC firewall rules','firewall/docs/firewalls'],['Hierarchical firewall policies','firewall/docs/firewall-policies'],['Global network firewall policies','firewall/docs/network-firewall-policies'],['Regional network firewall policies','firewall/docs/regional-firewall-policies'],['Firewall rules with service accounts','vpc/docs/using-firewalls'],['Cloud Armor overview','armor/docs/cloud-armor-overview']],
+  tan:['§8.6.2 Firewalls'],
+  notes:['"VPC Firewalls: The Package Inspector"','"Rule Evaluation and Priority", "Default (Implicit) Rules", "Stateful Firewalls: The Return Receipt"']},
+ shared:{consulted:[PCSE2],
+  docs:[['Shared VPC','vpc/docs/shared-vpc'],['Resource hierarchy','resource-manager/docs/cloud-platform-resource-hierarchy'],['Best practices for VPC design','architecture/best-practices-vpc-design'],['Connecting App Engine to Shared VPC (cited in PCSE)','appengine/docs/standard/python3/connecting-shared-vpc']],
+  tan:['No direct counterpart. Projects and IAM are a cloud control-plane concept, not a networking-layer one.'],
+  notes:['Not covered in your notes.']},
+ peering:{consulted:[PCSE2],
+  docs:[['VPC Network Peering','vpc/docs/vpc-peering'],['Network Connectivity Center','network-connectivity/docs/network-connectivity-center/concepts/overview'],['Private services access','vpc/docs/private-services-access'],['Private Service Connect','vpc/docs/private-service-connect'],['Cloud DNS peering zones (cited in PCSE)','dns/docs/zones/zones-overview']],
+  tan:['§5.6.7 BGP (route policy: learned ≠ advertised)','§5.6.2 IP Addresses (uniqueness, NAT)'],
+  notes:['"Case 2: Different VPC Communication (VPC Peering)" (corrected here: no tunnel, no Cloud Router)']}};
+function renderSources(){const s=SOURCES[S.view],el=$('#srcs');if(!s){el.innerHTML='';return;}
+  const a=([l,u])=>`<li><a href="${u.startsWith('http')?u:D+u}" target="_blank" rel="noopener">${esc(l)}</a></li>`;
+  el.innerHTML=`<div><h5>Consulted this session</h5><ul>${s.consulted.map(a).join('')}</ul></div>`+
+   `<div><h5>Google Cloud docs (verify here)</h5><ul>${s.docs.map(a).join('')}</ul></div>`+
+   `<div><h5>First principles · Tanenbaum, Computer Networks 5e</h5><ul>${s.tan.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div>`+
+   `<div><h5>Your notes</h5><ul>${s.notes.map(t=>`<li>${esc(t)}</li>`).join('')}<li class="dim">${esc(NOTES)}</li></ul></div>`+
+   `<div class="note">Facts not backed by a "consulted" source come from Claude's knowledge of Google Cloud documentation. The doc links are where to check them.</div>`;}
+(()=>{const root=document.documentElement,b=$('#bTheme');let t;try{t=localStorage.getItem('nv-theme')}catch(e){}
+  if(t)root.dataset.theme=t;
+  b.onclick=()=>{const dark=root.dataset.theme?root.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;root.dataset.theme=dark?'light':'dark';try{localStorage.setItem('nv-theme',root.dataset.theme)}catch(e){}};})();
+boot();
+</script>
+</body>
+</html>
