@@ -262,6 +262,30 @@ dl.gloss dt span{color:var(--muted);font-size:12.5px;margin-left:6px}
 dl.gloss dd{margin:2px 0 0;font-size:13px;color:var(--text)}
 dl.gloss .t dt b{font-family:var(--sans);font-weight:500}
 .gloss-empty{color:var(--muted);font-size:13px}
+/* view 0 glyphs */
+svg .hostg .scr{fill:var(--primary-bg);stroke:var(--text);stroke-width:1.4}
+svg .hostg .stand{fill:var(--text);opacity:.55}
+svg .hostg.faint{opacity:.5}
+svg .hostg.bad .scr{fill:var(--bad-bg);stroke:var(--bad)}
+svg .rtrg circle{fill:var(--surface);stroke:var(--text);stroke-width:1.5}
+svg .rtrg .arw{stroke:var(--text);stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+svg .swg rect{fill:var(--surface);stroke:var(--text);stroke-width:1.4}
+svg .swg rect.port{fill:var(--surface-3);stroke:var(--muted);stroke-width:.8}
+svg .envg rect{fill:var(--iam-bg);stroke:var(--iam);stroke-width:1.2}
+svg .envg .flap{fill:none;stroke:var(--iam);stroke-width:1}
+svg .envg.grey rect{fill:var(--surface-2);stroke:var(--dim)}
+svg .envg.grey .flap{stroke:var(--dim)}
+svg .envg.lost rect{fill:var(--bad-bg);stroke:var(--bad);stroke-dasharray:4 3}
+svg .envg.lost .flap{stroke:var(--bad)}
+svg .blink{stroke:var(--muted);stroke-width:3;stroke-linecap:round}
+svg .life{stroke:var(--line);stroke-width:2;stroke-dasharray:3 5}
+svg .netf{fill:color-mix(in srgb,var(--primary) 4%,transparent);stroke:var(--primary);stroke-width:1.2;stroke-dasharray:6 4}
+svg .key{font-size:17px;font-weight:500}
+svg .msg{font-size:11px;font-weight:500;fill:var(--primary-ink);paint-order:stroke;stroke:var(--canvas);stroke-width:4px;stroke-linejoin:round}
+svg .ph{font-size:10px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;fill:var(--primary)}
+svg .maprow rect{fill:var(--surface);stroke:var(--line)}
+svg .maprow:hover rect{fill:var(--primary-bg);stroke:var(--primary)}
+.c-base{color:var(--addr)}.chip.c-base,.insp .kind.c-base{background:var(--addr-bg)}
 </style>
 </head>
 <body>
@@ -482,6 +506,7 @@ function polyStr(pts){let d='',pen=false;for(const p of pts){if(p==='J'){pen=fal
 
 function render(){
   const v=V(),s=st();
+  $('#vtitle').textContent=v.title;$('#vblurb').innerHTML=v.blurb;
   const sc=v.scenarios&&v.scenarios.find(x=>x.id===S.scen[v.id]);
   S.trace=sc&&sc.run?sc.run(s):null;
   const hits=S.trace?S.trace.hops.slice(0,S.step+1):[];
@@ -507,7 +532,7 @@ function drawOverlay(){
 function renderTrace(){
   const ol=$('#trace'),vd=$('#verdict'),tr=S.trace,v=V();
   $('#scencard').style.display=v.scenarios?'':'none';
-  ol.parentElement.style.display=v.noTrace?'none':'';document.querySelector('.play').style.display=v.noTrace?'none':'';document.querySelector('#scencard h2').textContent=v.noTrace?'Presets':'Scenarios · send a packet';
+  ol.parentElement.style.display=v.noTrace?'none':'';document.querySelector('.play').style.display=v.noTrace?'none':'';document.querySelector('#scencard h2').textContent=v.scenHead||(v.noTrace?'Presets':'Scenarios · send a packet');
   if(!tr){ol.innerHTML='<li style="cursor:default"><span class="n">–</span><span class="muted">Pick a scenario.</span></li>';vd.innerHTML='';return;}
   ol.innerHTML=tr.hops.map((h,i)=>{const cls=i===S.step?'cur':(i<S.step?'past':'');const fail=(i===tr.hops.length-1&&!tr.ok&&i<=S.step)?' fail':'';
     const show=i<=S.step;return `<li class="${cls}${fail}" data-i="${i}"><span class="n">${i}</span><div><span class="chip c-${h.layer}">${LAYER[h.layer]||h.layer}</span><b>${esc(h.title)}</b>${show?`<p>${h.detail}</p>`:''}</div></li>`;}).join('');
@@ -609,7 +634,7 @@ function switchView(id){
 }
 function boot(){
   VIEWS.forEach(v=>{S.v[v.id]=JSON.parse(JSON.stringify(v.defaults||{}));});
-  $('#tabs').innerHTML=VIEWS.map((v,i)=>`<button class="tab" role="tab" data-v="${v.id}"><b>${i+1}</b>${esc(v.tab)}</button>`).join('');
+  $('#tabs').innerHTML=VIEWS.map((v,i)=>`<button class="tab" role="tab" data-v="${v.id}"><b>${i}</b>${esc(v.tab)}</button>`).join('');
   $('#tabs').onclick=e=>{const t=e.target.closest('.tab');if(t)switchView(t.dataset.v);};
   $('#lens').innerHTML=[['lens-inet','--inet','Internet'],['lens-gbb','--gbb','Google backbone'],['lens-vpc','--vpc','Your VPC'],['lens-hyb','--hyb','Hybrid'],['lens-fw','--fw','Firewall'],['lens-iam','--iam','IAM / projects']].map(([k,c,l])=>`<span data-k="${k}"><i style="background:var(${c})"></i>${l}</span>`).join('');
   $('#lens').onclick=e=>{const s=e.target.closest('[data-k]');if(s)select(s.dataset.k,null);};
@@ -620,6 +645,356 @@ function boot(){
   addEventListener('hashchange',()=>switchView(location.hash.slice(1)));
   switchView(location.hash.slice(1));
 }
+</script>
+<script>
+/* ================= VIEW 0 · FIRST PRINCIPLES =================
+   One concept per lesson, no prior knowledge assumed, every lesson steppable.
+   Diagrams follow Tanenbaum's illustrations (figure numbers in each lesson). */
+(()=>{
+Object.assign(INFO,{
+'base-host':{t:'Host',k:'base',w:'Any device on a network that sends or receives messages: a laptop, a phone, a printer, a server, or a virtual machine in the cloud.',a:'A house on a street.',p:'§1.1: a network is "a collection of autonomous computers interconnected… able to exchange information". Fig. 1-1.'},
+'base-link':{t:'Link',k:'base',w:'Whatever physically carries signals between two devices: a copper cable (electricity), fibre (light) or radio (Wi-Fi, mobile).',a:'The road between two houses.',p:'Chapter 2, the physical layer.'},
+'base-packet':{t:'Packet',k:'base',w:'A small piece of a message (usually up to about 1,500 bytes) with a label: where it comes from, where it goes, and which piece it is.',a:'One envelope out of a long letter sent in many numbered envelopes.',p:'Fig. 2-42: circuit switching vs packet switching.'},
+'base-switch':{t:'Switch',k:'base',w:'A junction box that connects the hosts of one local network. It learns which host is on which socket and passes each packet only to the one it is addressed to.',a:'The mailroom of one office building.',p:'§4.3.4 Switched Ethernet; Fig. 1-8(b).'},
+'base-ip':{t:'IP address',k:'base',w:'A number that identifies a computer, written as four numbers from 0 to 255, e.g. 192.168.1.20. The first part names the network, the last part names the host on it.',a:'A street address: street name plus house number.',p:'§5.6.2 IP addresses; Fig. 5-48 an IP prefix and a subnet mask.'},
+'base-port':{t:'Port',k:'base',w:'A number from 0 to 65535 that says which program on a computer a packet is for. 443 = web (HTTPS), 22 = remote login (SSH), 25 = email.',a:'The flat number inside a building.',p:'Fig. 6-34: some assigned ports.'},
+'base-router':{t:'Router',k:'base',w:'A device with a foot in two or more networks. It passes each packet one step closer to its destination, using its route table.',a:'A sorting office. It does not know your street, only which van heads toward your town.',p:'§5.1.1 store-and-forward packet switching; Fig. 5-2.'},
+'base-rtable':{t:'Route table',k:'base',w:'A router\'s list of "to reach this network, hand the packet to that next device". When several lines match, the most specific one wins.',a:'The sorting office\'s chart of which van serves which area.',p:'Fig. 5-2; Fig. 5-52 longest matching prefix.'},
+'base-gw':{t:'Default gateway',k:'base',w:'The router a host hands everything to when the destination is not on its own network.',a:'The post box at the end of your street: anything not for your neighbours goes in there.',p:'§5.6.2.'},
+'base-isp':{t:'ISP · Internet service provider',k:'base',w:'The company that connects you to the rest of the Internet. It knows a route to every address on the Internet, learned from its neighbouring networks.',a:'Your local post office, which is connected to all the others.',p:'Fig. 1-29 overview of the Internet architecture.'},
+'base-ixp':{t:'Exchange point',k:'base',w:'A building where many networks plug into each other to swap traffic directly, instead of paying a third network to carry it.',a:'A shared depot where courier companies hand parcels to each other.',p:'Fig. 1-29: "peering at IXP".'},
+'base-owned':{t:'An independently owned network',k:'base',w:'Every network on the Internet is run by someone: an ISP, a mobile carrier, a university, Google. Each tells its neighbours which addresses it can reach. The language they use for that is called BGP.',a:'Separate postal companies that agreed to deliver each other\'s mail.',p:'Fig. 5-45 the Internet as an interconnected collection of networks; §5.6.7 BGP.'},
+'base-l-app':{t:'Application layer (later called L7)',k:'base',w:'The actual message one program sends another, e.g. "GET /index.html" from a browser to a web server. Only the two ends read it.',a:'The letter itself.',p:'Fig. 1-15 headers added at each layer; Fig. 1-21 the TCP/IP model.'},
+'base-l-tr':{t:'Transport layer (later called L4)',k:'base',w:'Adds port numbers (which program) and piece numbers, so lost pieces can be resent and everything is put back in order. The usual one is TCP.',a:'The envelope with the flat number and "page 1 of 4".',p:'Fig. 1-15; Fig. 1-21.'},
+'base-l-ip':{t:'Internet layer (later called L3)',k:'base',w:'Adds the sender\'s and receiver\'s IP addresses, so routers anywhere in the world can pass the packet along.',a:'The courier bag with the full street addresses.',p:'Fig. 1-15; Fig. 1-21.'},
+'base-l-link':{t:'Link layer (later called L2)',k:'base',w:'Adds the hardware address of the next device on this particular wire. Every router throws it away and adds a new one for the next wire.',a:'The truck: it only goes to the next depot, then the bag moves to another truck.',p:'Fig. 1-15; Fig. 1-21; Fig. 1-14 the philosopher-translator-secretary architecture.'},
+'base-resolver':{t:'Resolver',k:'base',w:'The helper your computer asks to look up names. It is usually run by your ISP or a public service (Google\'s is 8.8.8.8). It does the legwork and remembers answers for a while.',a:'A librarian who looks things up for you and remembers popular answers.',p:'§7.1.3 name servers; Fig. 7-6 step 1.'},
+'base-root':{t:'Root name servers',k:'base',w:'The top of the naming tree. They do not know example.com, but they know who runs every ending (.com, .org, .za…). There are 13 named root servers, copied to hundreds of places.',a:'The library\'s main index, pointing you to the right section.',p:'Fig. 7-6 steps 2–3.'},
+'base-tld':{t:'.com name servers',k:'base',w:'They know which server is in charge of each name ending in .com.',a:'The section index, pointing you to the right shelf.',p:'Fig. 7-6 steps 4–5.'},
+'base-auth':{t:'The domain\'s own name server',k:'base',w:'The server the owner of example.com set up or rents. It holds the real answer: example.com = 93.184.215.14.',a:'The book itself.',p:'Fig. 7-6 steps 6–9: the authoritative answer.'},
+'base-tcp':{t:'Handshake (TCP)',k:'base',w:'Three short messages, "can we talk?", "yes, can you hear me?", "yes", that open a reliable connection. Both sides agree on starting numbers so missing pieces can be noticed.',a:'Two people on a crackly radio checking they can hear each other before they start talking.',p:'Fig. 6-37 TCP connection establishment.'},
+'base-tls':{t:'TLS (the padlock)',k:'base',w:'The server shows a certificate proving it really is example.com, and both sides agree a secret key, so nobody in between can read or change the messages.',a:'Checking an ID card, then switching to a code only the two of you know.',p:'§8.9.3 SSL (TLS is its successor).'},
+'base-http':{t:'Request and response (HTTP)',k:'base',w:'The browser asks for something ("GET /"), and the server answers with a status ("200 OK") and the content.',a:'Ordering at a counter and getting your order.',p:'Fig. 1-2 requests and replies; §7.3.4 HTTP.'},
+'base-private':{t:'Private address',k:'base',w:'Addresses set aside for internal use: 10.x.x.x, 172.16–31.x.x and 192.168.x.x. Millions of networks reuse them, so the Internet cannot deliver to them directly.',a:'Room numbers: every hotel has a room 12.',p:'§5.6.2; RFC 1918.'},
+'base-nat':{t:'Address swapping (NAT)',k:'base',w:'A router replaces private "From" addresses with its own public address on the way out, notes who asked, and swaps back when the reply arrives. Outsiders cannot start a conversation in, because there is no note for them.',a:'A hotel reception. Outgoing letters carry the hotel\'s address; the reception\'s log routes each reply to the right room.',p:'Fig. 5-55 placement and operation of a NAT box.'},
+'base-map':{t:'From first principles to Google Cloud',k:'base',w:'Each row maps an idea from this view to what Google Cloud calls it. Click a row to open that view.'}
+});
+LAYER.base='Basics';
+
+/* ---------- drawing helpers (simple, Tanenbaum-style glyphs) ---------- */
+const host=(id,x,y,name,sub,k='base-host',o={})=>{P(id,x,y);return `<g class="nd hostg${o.cls?' '+o.cls:''}" data-id="${id}" data-k="${k}"><rect class="scr" x="${x-30}" y="${y-22}" width="60" height="38" rx="4"/><rect class="stand" x="${x-14}" y="${y+18}" width="28" height="5" rx="2"/>${T(x,y+38,name,'lbl b','middle')}${sub?T(x,y+51,sub,'sm mono','middle'):''}</g>`;};
+const router=(id,x,y,name,sub,k='base-router')=>{P(id,x,y);const a=13;return `<g class="nd rtrg" data-id="${id}" data-k="${k}"><circle cx="${x}" cy="${y}" r="24"/><path class="arw" d="M${x-a},${y}h${2*a}M${x},${y-a}v${2*a}M${x+a-5},${y-4}l5,4l-5,4M${x-a+5},${y-4}l-5,4l5,4M${x-4},${y-a+5}l4,-5l4,5M${x-4},${y+a-5}l4,5l4,-5"/>${T(x,y+40,name,'lbl b','middle')}${sub?T(x,y+53,sub,'sm mono','middle'):''}</g>`;};
+const sw=(id,x,y,w,name,n,k='base-switch')=>{P(id,x+w/2,y+20);const pw=(w-20)/n;let s=`<g class="nd swg" data-id="${id}" data-k="${k}"><rect x="${x}" y="${y}" width="${w}" height="40" rx="6"/>${T(x+w/2,y+15,name,'lbl b','middle')}`;for(let i=0;i<n;i++)s+=`<rect class="port" x="${x+10+i*pw}" y="${y+22}" width="${pw-6}" height="10" rx="1.5"/>${T(x+10+i*pw+(pw-6)/2,y+31,String(i+1),'xs','middle')}`;return s+'</g>';};
+const env=(x,y,w,h,lines,o={})=>`<g class="${o.k?'nd ':''}envg${o.cls?' '+o.cls:''}"${o.id?` data-id="${o.id}"`:''}${o.k?` data-k="${o.k}"`:''}><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/><polyline class="flap" points="${x},${y} ${x+w/2},${y+Math.min(h*.4,16)} ${x+w},${y}"/>${lines.map((l,i)=>T(x+(o.mid?w/2:7),y+(o.top??Math.min(h*.4,16)+12)+i*12,l,o.cls2||'xs mono',o.mid?'middle':'start')).join('')}</g>`;
+const net=(x,y,w,h,label,sub)=>`<rect class="netf" x="${x}" y="${y}" width="${w}" height="${h}" rx="10"/>${T(x+12,y+20,label,'hd').replace('class="hd"','class="hd" style="fill:var(--primary)"')}${sub?T(x+12,y+34,sub,'sm'):''}`;
+const own=(id,x,y,rx,ry,label,sub,c,k='base-owned')=>{P(id,x,y+Math.round(ry*.55));return `<g class="nd" data-id="${id}" data-k="${k}"><ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" style="fill:var(--${c}-bg);stroke:var(--${c});stroke-width:1.4"/>${T(x,y+(sub?-2:4),label,'lbl b','middle')}${sub?T(x,y+12,sub,'sm','middle'):''}</g>`;};
+const wire=(a,b,cls='blink')=>`<line class="${cls}" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`;
+const tbl=(x,y,w,title,rows,hit,k)=>{let s=`<g class="nd" data-id="tbl-${x}" data-k="${k}"><rect x="${x}" y="${y}" width="${w}" height="${30+rows.length*19}" rx="6" style="fill:var(--surface);stroke:var(--line)"/>${T(x+10,y+18,title,'hd')}`;
+  rows.forEach((r,i)=>{const yy=y+26+i*19;if(i===hit)s+=`<rect x="${x+4}" y="${yy}" width="${w-8}" height="18" rx="3" style="fill:var(--hit-bg);stroke:var(--accent)"/>`;s+=T(x+12,yy+13,r[0],'sm mono b')+T(x+w*.48,yy+13,r[1],'sm');});return s+'</g>';};
+const bridge=t=>`<g><rect x="20" y="630" width="1160" height="38" rx="8" style="fill:var(--primary-bg)"/>${T(36,653,'IN GOOGLE CLOUD','hd').replace('class="hd"','class="hd" style="fill:var(--primary)"')}${T(168,653,t,'lbl')}</g>`;
+const msg=(a,b,t)=>{const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2,lift=6+Math.abs((b[1]-a[1])/((b[0]-a[0])||1))*t.length*3;return T(mx,my-lift,t,'msg','middle');};
+const seg=(s,key,label,opts)=>`<div class="row"><span class="lab">${label}</span><span class="seg" data-key="${key}">${opts.map(([v,l])=>`<button data-v="${v}" aria-pressed="${s[key]===v}">${l}</button>`).join('')}</span></div>`;
+const tog=(s,key,label,hint)=>`<label class="tg"><input type="checkbox" data-key="${key}" ${s[key]?'checked':''}><span>${label}${hint?`<small>${hint}</small>`:''}</span></label>`;
+const B=(n,title,detail,o={})=>H(n,'base',title,detail,o);
+
+/* ---------- the lessons ---------- */
+const LS=[
+{id:'net',label:'What is a network?',hint:'hosts + links',t:'What is a network?',
+ blurb:'A network is two or more computers joined so they can send each other messages. Each device on it is called a <b>host</b>. Whatever joins them is called a <b>link</b>: a cable, a fibre, or radio like Wi-Fi.',
+ key:'A network = devices (hosts) + connections (links) that carry messages between them.',
+ pic:'Houses (hosts) and the roads between them (links). The roads don\'t care what is in the parcels.',
+ rem:['A host is any device that sends or receives: laptop, phone, server, printer.','A link just carries signals. It doesn\'t understand the message.','With more than two hosts, a junction box (a switch) connects them all.'],
+ tan:'§1.1 defines a computer network as "a collection of autonomous computers interconnected by a single technology". Fig. 1-1 shows the smallest useful one: clients and a server.',
+ bridge:'Your virtual machines are the hosts. Google provides the links: fibre between buildings and software acting as the switch (view 3).',
+ run:()=>({hops:[B('a','Laptop A writes a message','To the network it is just data: a chat message, a photo, a request for a web page.',{k:'base-host'}),
+   B('lnk','The link carries it','As signals: pulses of electricity in copper, flashes of light in fibre, or radio waves for Wi-Fi.',{k:'base-link'}),
+   B('b','Laptop B receives it','B turns the signals back into the message. Two hosts and a link: that is a network.',{k:'base-host'})],ok:true,summary:'Hosts plus links make a network. Everything else in networking is about doing this at scale.'}),
+ draw(){let o=T(80,110,'The smallest network: two hosts, one link','hd');
+   o+=host('a',190,260,'Laptop A','host')+host('b',570,260,'Laptop B','host');
+   P('lnk',380,252);o+=`<g class="nd" data-id="lnk" data-k="base-link">${wire([222,252],[538,252])}<line x1="222" y1="252" x2="538" y2="252" stroke="transparent" stroke-width="18"/></g>`+T(380,280,'link: cable, fibre or radio','sm','middle');
+   o+=env(345,196,70,34,['message'],{mid:true,top:28});
+   o+=T(720,110,'Bigger: many hosts, one junction box','hd');
+   o+=sw('sw',830,300,220,'Switch',4);
+   [['h1','Phone',760,180,862],['h2','PC',1120,180,1002],['h3','Printer',760,470,914],['h4','TV',1120,470,968]].forEach(([id,n,x,y,px],i)=>{o+=wire([x+(x<900?30:-30),y],[px+12,i<2?300:340]);o+=host(id,x,y,n,'host');});
+   o+=T(940,560,'Each host plugs into the switch. More on this in lesson 4.','sm','middle');
+   return o;}},
+
+{id:'pkt',label:'Messages travel as packets',hint:'cut, number, share',t:'Messages travel as small packets',
+ blurb:'Big messages are cut into small pieces called <b>packets</b>. Each one carries a label: who it is from, who it is for, and which piece it is. Packets from many conversations take turns on the same links, and are put back in order at the other end.',
+ key:'Big messages are cut into small, numbered, addressed packets that share the links.',
+ pic:'Posting a book one chapter per envelope. Each envelope is addressed and numbered, so the reader can put the book back together and ask for a missing chapter.',
+ rem:['Sharing: no one has to wait for someone else\'s huge download to finish.','Losing one packet costs only that packet. It is simply sent again.','Every packet is labelled, so it can find its own way.'],
+ tan:'Fig. 2-42 compares circuit switching (a line reserved for the whole call, like an old phone call) with packet switching (pieces share the lines). The Internet uses packet switching.',
+ ctl:s=>tog(s,'lose','Lose packet 3 on the way','See how numbering lets B ask for just that piece again.'),
+ bridge:'Everything in Google Cloud moves as packets. Routes and firewall rules decide what happens to each packet, one at a time (views 3 and 5).',
+ run:s=>{const h=[B('a','A cuts the photo into packets','Each gets a label: from A, to B, piece 1 of 4. Real packets hold about 1,500 bytes, so a 3 MB photo becomes about 2,000 of them. We show 4.',{k:'base-packet'}),
+   B('j1','Packets join a shared link','C is sending to D at the same moment. Packets from both conversations take turns on the same link.',{k:'base-link'}),
+   B('share','Taking turns','Grey packets belong to C → D. Nobody reserves the link; it is shared packet by packet.',{k:'base-packet'}),
+   B('j2','Sorted at the far end','Each packet goes toward the address on its label: the yellow ones to B, the grey ones to D.',{k:'base-packet'})];
+   if(s.lose)h.push(B('b','B notices piece 3 is missing','B has pieces 1, 2 and 4. Because they are numbered, B knows exactly what is missing and asks A for piece 3 again.',{k:'base-packet'}),B('b','Piece 3 arrives again','Only that one piece was resent, not the whole photo.',{k:'base-packet',at:[1080,300]}));
+   h.push(B('b','B puts the photo back together',`Sorted by number, the pieces become photo.jpg again. They may even arrive out of order; the numbers fix that.`,{k:'base-packet'}));
+   return {hops:h,ok:true,summary:s.lose?'A lost packet was noticed and only that piece was sent again.':'Four labelled pieces shared the link with another conversation and were reassembled.'};},
+ draw(s){let o='';
+   o+=host('a',120,300,'Laptop A','sending photo.jpg (3 MB)')+host('c',120,520,'Laptop C','another conversation',undefined,{cls:'faint'});
+   o+=host('b',1080,300,'Laptop B','receiving')+host('d',1080,520,'Laptop D','',undefined,{cls:'faint'});
+   P('j1',300,410);P('j2',900,410);P('share',600,410);
+   o+=wire([150,320],[300,410])+wire([150,500],[300,410])+wire([900,410],[1050,320])+wire([900,410],[1050,500]);
+   o+=`<g class="nd" data-id="share" data-k="base-link">${wire([300,410],[900,410])}<line x1="300" y1="410" x2="900" y2="410" stroke="transparent" stroke-width="22"/></g>`+T(600,452,'one shared link','sm','middle');
+   o+=`<circle cx="300" cy="410" r="5" style="fill:var(--muted)"/><circle cx="900" cy="410" r="5" style="fill:var(--muted)"/>`;
+   [['1/4',0],['a',1],['2/4',0],['b',1],['3/4',0],['c',1],['4/4',0]].forEach(([n,g],i)=>{const x=330+i*80,lost=s.lose&&n==='3/4';o+=env(x,358,54,34,[n],{mid:true,top:29,cls:g?'grey':lost?'lost':''});if(lost)o+=T(x+27,352,'lost','sm b','middle').replace('class="sm b"','class="sm b" style="fill:var(--bad)"');});
+   o+=T(120,130,'A cuts its photo into numbered pieces:','sm','middle');
+   for(let i=0;i<4;i++)o+=env(40+i*42,145,36,26,[`${i+1}`],{mid:true,top:22});
+   o+=T(120,196,'each labelled "from A, to B, piece n of 4"','xs','middle');
+   o+=T(1080,130,'B sorts them back into order:','sm','middle');
+   for(let i=0;i<4;i++)o+=env(1000+i*42,145,36,26,[`${i+1}`],{mid:true,top:22});
+   o+=T(1080,196,'→ photo.jpg','xs','middle');
+   return o;}},
+
+{id:'addr',label:'Addresses and ports',hint:'which computer, which program',t:'Addresses and ports',
+ blurb:'To deliver a packet, the network needs to know where it is going. An <b>IP address</b> (like 93.184.215.14) says which computer. A <b>port</b> (like 443) says which program on that computer, so web traffic reaches the web server and not the email program.',
+ key:'The IP address says which computer. The port says which program on it.',
+ pic:'A street address gets the letter to the right building. The flat number gets it to the right door inside.',
+ rem:['Every packet carries two addresses: to, and from (so the reply can come back).','The first part of an IP address names the network, the last part the host.','Well-known ports: 443 web, 22 remote login, 25 email.'],
+ tan:'§5.6.2 explains IP addresses and prefixes (Fig. 5-48). Fig. 6-34 lists well-known ports.',
+ bridge:'Each VM gets an IP address from its subnet\'s range, and firewall rules are written as address ranges plus ports (views 4 and 5).',
+ run:()=>({hops:[B('to','The label on the packet','To 93.184.215.14 port 443: the server, and its web program. From 192.168.1.20 port 51000: your laptop, so the reply can find its way back.',{k:'base-ip'}),
+   B('srv','The network delivers it to the right computer','Everything along the way only needed the IP address to get it here (lessons 5 and 6 show how).',{k:'base-ip'}),
+   B('door443','The computer hands it to the right program','It reads the port: 443 means the web server. A packet for port 22 would go to the remote-login program instead.',{k:'base-port',via:[[910,280]]})],ok:true,summary:'IP address → which computer. Port → which program.'}),
+ draw(){let o='';
+   o+=`<rect x="60" y="100" width="520" height="230" rx="6" style="fill:var(--iam-bg);stroke:var(--iam);stroke-width:1.3"/><polyline points="60,100 320,175 580,100" style="fill:none;stroke:var(--iam)"/>`;
+   o+=T(80,124,'A PACKET\'S LABEL','hd');
+   P('to',500,180);
+   o+=`<g class="nd" data-id="to" data-k="base-ip"><rect x="80" y="192" width="480" height="30" rx="4" style="fill:var(--surface);stroke:var(--line)"/>${T(92,212,'To:','lbl b')}${T(140,212,'93.184.215.14','lbl mono b')}${T(330,212,'port 443','lbl mono b')}${T(430,212,'the web server','sm')}</g>`;
+   o+=`<g class="nd" data-id="from" data-k="base-ip"><rect x="80" y="230" width="480" height="30" rx="4" style="fill:var(--surface);stroke:var(--line)"/>${T(92,250,'From:','lbl b')}${T(140,250,'192.168.1.20','lbl mono')}${T(330,250,'port 51000','lbl mono')}${T(430,250,'your laptop','sm')}</g>`;
+   o+=T(92,290,'Inside: "Please send me your home page"','lbl');o+=T(92,310,'(the actual message)','sm');
+   o+=ii(568,192,'base-ip')+ii(568,262,'base-port');
+   P('srv',910,165);
+   o+=`<g class="nd" data-id="srv" data-k="base-ip"><rect x="700" y="100" width="420" height="330" rx="8" style="fill:var(--surface);stroke:var(--text);stroke-width:1.4"/>${T(910,128,'Server · 93.184.215.14','lbl b','middle')}${T(910,146,'one computer, many programs','sm','middle')}</g>`;
+   [['22','remote login (SSH)',720,180],['25','email',920,180],['443','web (HTTPS)',720,300],['5432','database',920,300]].forEach(([p,n,x,y])=>{const hit=p==='443';P('door'+p,x+160,y+18);
+     o+=`<g class="nd" data-id="door${p}" data-k="base-port"><rect x="${x}" y="${y}" width="180" height="80" rx="6" style="fill:${hit?'var(--ok-bg)':'var(--surface-2)'};stroke:${hit?'var(--ok)':'var(--line)'}"/>${T(x+90,y+36,'port '+p,'lbl mono b','middle')}${T(x+90,y+56,n,'sm','middle')}</g>`;});
+   o+=T(910,412,'each program listens on its own port (its own door)','sm','middle');
+   o+=T(80,400,'ANATOMY OF AN ADDRESS','hd');
+   o+=`<text x="80" y="450" class="mono b" style="font-size:30px"><tspan style="fill:var(--primary)">192.168.1</tspan><tspan>.</tspan><tspan style="fill:var(--vpc)">20</tspan></text>`;
+   o+=`<path d="M82,462 h186" style="stroke:var(--primary);stroke-width:2"/><path d="M280,462 h36" style="stroke:var(--vpc);stroke-width:2"/>`;
+   o+=T(80,482,'which network (the street)','sm')+T(280,482,'which host (the house)','sm');
+   o+=T(80,520,'Written as 192.168.1.0/24, the "/24" says how much is the street:','sm');
+   o+=T(80,536,'the first 24 of the address\'s 32 binary digits, i.e. the first three numbers.','sm');
+   o+=T(80,552,'Every host on this street shares 192.168.1 and differs only in the last number.','sm');
+   return o;}},
+
+{id:'lan',label:'Talking inside one network',hint:'the switch',t:'Talking inside one network',
+ blurb:'Inside one local network, every host plugs into a <b>switch</b>. The switch learns which host sits on which socket, and passes each packet only to the host it is addressed to. Nothing here leaves the building.',
+ key:'Inside one network, a switch passes each packet only to the host it is addressed to.',
+ pic:'The mailroom of one office building. It knows which desk everyone sits at and delivers internal post directly.',
+ rem:['All hosts on one local network share the first part of their address (here 192.168.1).','The switch learns who is where by noticing which socket each host sends from.','Other hosts never see packets that are not for them.'],
+ tan:'Fig. 1-8(b) shows switched Ethernet; §4.3.4 explains how the switch forwards only to the right port.',
+ bridge:'A subnet is Google Cloud\'s version of one local network. There is no switch box: software on every physical machine does this job (view 3).',
+ run:()=>({hops:[B('a','A sends to 192.168.1.12','A sees that .12 starts with 192.168.1, the same as its own address, so it is on the same network. No router needed. It hands the packet to the switch.',{k:'base-ip',at:[260,180]}),
+   B('sw','The switch checks its memory','It learned which host is on which socket by watching who sent from where. 192.168.1.12 is on socket 2.',{k:'base-switch',via:[[492,322]],at:[562,327]}),
+   B('c','Only C receives it','B and D never see it. That keeps the network quiet and private.',{k:'base-host',at:[260,470]})],ok:true,summary:'Local delivery: one switch, one hop, no router.'}),
+ draw(s,hits){let o=net(140,100,920,500,'One local network · 192.168.1.x','every host here shares the first part of its address');
+   o+=sw('sw',450,300,300,'Switch',4);
+   [['a','Host A','192.168.1.10',260,180,[492,322]],['b','Host B','192.168.1.11',940,180,[702,322]],['c','Host C','192.168.1.12',260,470,[562,332]],['d','Host D','192.168.1.13',940,470,[632,332]]].forEach(([id,n,ip,x,y,p])=>{o+=wire([x+(x<600?30:-30),y],p);o+=host(id,x,y,n,ip);});
+   o+=tbl(470,380,260,'Switch\'s memory',[['socket 1','Host A'],['socket 2','Host C'],['socket 3','Host D'],['socket 4','Host B']],hits.length>1?1:-1,'base-switch');
+   return o;}},
+
+{id:'route',label:'Joining networks: routers',hint:'one step at a time',t:'Joining networks: routers',
+ blurb:'To reach a host on a different network, the packet goes to a <b>router</b>: a device connected to two or more networks. Each router has a <b>route table</b>: "to reach this network, hand it to that next device". No router knows the whole journey. Each one just moves the packet one step closer.',
+ key:'Routers join networks. Each one only knows the next step, not the whole route.',
+ pic:'Sorting offices. The one in your town doesn\'t know your friend\'s street abroad, only which van heads in the right direction.',
+ rem:['A host\'s first question: is the destination on my own network? If yes, send directly. If not, give it to my router (the "default gateway").','Each router looks up only the destination address and picks the next hop.','The most specific line in the table wins; "anything else" is the fallback.'],
+ tan:'§5.1.1 store-and-forward packet switching; Fig. 5-2 shows routing tables at each router, each pointing only to the next hop.',
+ ctl:s=>seg(s,'dst','Send A\'s packet to',[['same','B (home)'],['office','O (office)'],['school','S (school)']]),
+ bridge:'A VPC\'s route table is this table, and "next hop" means "hand it to…". Cloud Router swaps routes with your own routers (views 2 and 3).',
+ run:s=>{const d=s.dst;
+   if(d==='same')return {hops:[B('a','A: is 192.168.1.30 on my network?','Yes, it starts with 192.168.1. A sends it straight there. No router involved.',{k:'base-gw'}),B('b','Delivered locally','Same network: lesson 4\'s switch handles it.',{k:'base-host'})],ok:true,summary:'Same network: no router needed.'};
+   const h=[B('a',`A: is ${d==='office'?'10.0.0.5':'172.16.0.9'} on my network?`,'No, it doesn\'t start with 192.168.1. So A hands the packet to its router R1, its "default gateway".',{k:'base-gw'}),
+     B('r1','R1 looks up its table',d==='office'?'10.0.0.x is directly on R1\'s office side. It sends the packet there.':'172.16.0.x → hand it to R2. R1 has no idea where the school host is, only that R2 is closer.',{k:'base-rtable'})];
+   if(d==='school')h.push(B('r2','R2 looks up its table','172.16.0.x is directly on R2\'s school side. It delivers there.',{k:'base-rtable'}));
+   h.push(B(d==='office'?'o':'s','Delivered',d==='office'?'One router hop.':'Two router hops. Neither router knew the full path; each made one local decision.',{k:'base-host',via:d==='office'?[[600,260]]:[]}));
+   return {hops:h,ok:true,summary:'Each router made one decision: the next hop.'};},
+ draw(s,hits){let o='';
+   o+=net(30,100,320,320,'Home · 192.168.1.x')+net(440,100,320,320,'Office · 10.0.0.x')+net(850,100,320,320,'School · 172.16.0.x');
+   o+=router('r1',395,260,'R1','router')+router('r2',805,260,'R2','router');
+   o+=host('a',130,210,'A','192.168.1.20')+host('b',250,330,'B','192.168.1.30')+host('o',600,170,'O','10.0.0.5')+host('s',1010,260,'S','172.16.0.9');
+   o+=wire([160,210],[371,252])+wire([280,325],[371,268])+wire([419,260],[781,260])+wire([600,232],[600,260])+wire([829,260],[980,260])+T(600,282,'the office network','xs','middle');
+   const hit=s.dst==='office'?1:s.dst==='school'?2:-1,on=hits.length>=2&&hits.some(h=>h.n==='r1');
+   o+=tbl(330,450,540,'R1\'s route table · to reach… hand it to…',[['192.168.1.x','home side (directly)'],['10.0.0.x','office side (directly)'],['172.16.0.x','R2'],['anything else','the ISP (lesson 6)']],on?hit:-1,'base-rtable');
+   o+=T(40,460,'A\'s own rule:','sm b')+T(40,476,'on my network? send directly.','sm')+T(40,492,'otherwise → my router R1','sm')+T(40,508,'(its "default gateway")','sm');
+   return o;}},
+
+{id:'internet',label:'The Internet: a network of networks',hint:'owned networks meeting',t:'The Internet: a network of networks',
+ blurb:'The Internet is not one network. It is tens of thousands of separately owned networks (home ISPs, mobile carriers, universities, companies like Google) that agree to carry each other\'s packets. They meet at <b>exchange points</b> and tell each other which addresses they can reach.',
+ key:'The Internet is many separately owned networks that agree to pass each other\'s packets.',
+ pic:'Many postal companies that agreed to hand each other\'s mail across at shared depots.',
+ rem:['Your ISP connects you to everyone else.','Networks swap traffic directly at exchange points, or pay a bigger "backbone" network to carry it.','Each network announces "I can reach these addresses". That is how routes spread. (The language is called BGP.)'],
+ tan:'Fig. 1-29 is the overview of the Internet\'s architecture this diagram follows. Fig. 5-45 shows it as an interconnected collection of networks.',
+ ctl:s=>tog(s,'transit','Your ISP has no direct link to Google','Then it pays a big backbone network to carry the packet.'),
+ bridge:'Google\'s network is one of these networks, and one of the largest. View 1 shows where it meets the Internet and how far your packet rides on it.',
+ run:s=>{const h=[B('lap','Your laptop sends a request to Google','It goes over your home connection to your ISP.',{k:'base-host'}),
+   B('isp','Your ISP','You pay it to connect you. It knows a route to every address on the Internet, learned from its neighbours.',{k:'base-isp'})];
+   if(s.transit)h.push(B('bb','A backbone network','Your ISP pays this bigger network to carry packets it can\'t deliver itself.',{k:'base-owned'}));
+   else h.push(B('ixp','An exchange point','Your ISP and Google both connect here, so they hand traffic over directly instead of paying a middleman.',{k:'base-ixp'}));
+   h.push(B('goog','Google\'s network','Google announced "I can reach 142.250.x.x", so the packet was handed over here. From now on it rides Google\'s own network.',{k:'base-owned'}),
+     B('dc','A Google data center','Delivered. The packet crossed several networks owned by different companies.',{k:'base-host'}));
+   return {hops:h,ok:true,summary:s.transit?'Your ISP → a paid backbone network → Google.':'Your ISP → exchange point → Google.'};},
+ draw(s){let o='';
+   o+=host('lap',90,250,'Your laptop','home')+host('ph',90,470,'Your phone','mobile');
+   o+=own('isp',300,250,95,48,'Your ISP','home broadband','inet','base-isp')+own('mob',300,470,95,48,'Mobile network','','inet','base-isp');
+   o+=own('bb',600,140,120,46,'Backbone network','carries traffic between countries','neutral');
+   P('ixp',600,394);o+=`<g class="nd" data-id="ixp" data-k="base-ixp"><rect x="515" y="335" width="170" height="70" rx="8" style="fill:var(--surface);stroke:var(--text);stroke-width:1.4"/>${T(600,364,'Exchange point','lbl b','middle')}${T(600,380,'networks meet here','sm','middle')}</g>`;
+   o+=own('goog',900,300,150,72,'Google\'s network','one of many networks','gbb');
+   o+=own('uni',900,520,110,44,'University network','','vpc');
+   P('dc',1110,478);o+=`<g class="nd" data-id="dc" data-k="base-host"><rect x="1055" y="425" width="110" height="66" rx="6" style="fill:var(--gbb-bg);stroke:var(--gbb)"/>${T(1110,445,'Data center','lbl b','middle')}${T(1110,460,'servers','sm','middle')}</g>`;
+   o+=wire([120,250],[205,250])+wire([120,470],[205,470])+wire([380,225],[490,155])+wire([380,275],[515,360])+wire([380,450],[515,385])+wire([685,360],[760,320])+wire([700,160],[790,250])+wire([685,390],[800,505])+wire([1010,345],[1080,425]);
+   o+=`<rect x="760" y="196" width="230" height="22" rx="11" style="fill:var(--gbb-bg)"/>`+T(875,211,'"I can reach 142.250.x.x"','sm b','middle').replace('class="sm b"','class="sm b" style="fill:var(--gbb-ink)"');
+   o+=`<rect x="180" y="180" width="240" height="22" rx="11" style="fill:var(--inet-bg)"/>`+T(300,195,'"I can reach 41.x.x.x (my customers)"','sm b','middle').replace('class="sm b"','class="sm b" style="fill:var(--inet-ink)"');
+   o+=T(600,580,'Each oval is owned by a different company. Nobody owns the whole Internet.','lbl','middle');
+   return o;}},
+
+{id:'layers',label:'Envelopes inside envelopes',hint:'layers',t:'Envelopes inside envelopes: layers',
+ blurb:'Sending a message involves several separate jobs, and each job is a <b>layer</b>. Each layer wraps the message in its own envelope with its own label. Routers only open the outer envelopes; the inner message is only read by the two ends.',
+ key:'Each layer wraps the message in its own envelope. Routers only open the outer ones.',
+ pic:'A letter, in an envelope with the flat number, in a courier bag with the street address, on a truck going to the next depot. Each handler only deals with their own layer.',
+ rem:['Application: what you actually want ("GET /index.html").','Transport: which program (port), and piece numbers.','Internet: which computer (IP addresses), worldwide.','Link: the next device on this wire. Replaced at every router.','Later views say L7, L4, L3, L2 for these four.'],
+ tan:'Fig. 1-15 shows each layer adding its header; Fig. 1-21 is the TCP/IP model with these four layers. Fig. 1-14\'s philosopher-translator-secretary story is the same idea.',
+ bridge:'Firewall rules read the Internet and Transport labels (addresses, ports). Google\'s front end and Cloud Armor read the Application message (views 1 and 5).',
+ run:()=>({hops:[B('snd','Your browser wraps the request','Application writes "GET /index.html". Transport adds ports 51000 → 443 and a piece number. Internet adds the two IP addresses. Link adds the hardware address of the next device: your home router.',{k:'base-l-app'}),
+   B('rtr','Each router opens only the outer envelopes','It removes the Link envelope, reads the destination IP address, picks the next hop, and wraps it in a fresh Link envelope for the next wire. The inner envelopes are never opened.',{k:'base-l-ip'}),
+   B('rcv','The server unwraps everything','Link, Internet and Transport are removed in turn. Port 443 tells it which program gets the message: its web server reads "GET /index.html".',{k:'base-l-tr'})],ok:true,summary:'Each layer did one job and only read its own label.'}),
+ draw(){let o='';
+   const stack=(x,id,title,lk)=>{P(id,x+200,330);let s=T(x+200,110,title,'hd','middle');
+     [['base-l-link','LINK · next device on this wire',lk,0,'var(--neutral)'],['base-l-ip','INTERNET · which computer','192.168.1.20 → 93.184.215.14',1,'var(--gbb)'],['base-l-tr','TRANSPORT · which program, in order','port 51000 → 443 · piece 1',2,'var(--vpc)'],['base-l-app','APPLICATION · what you want','"GET /index.html"',3,'var(--iam)']].forEach(([k,l,sub,i,c])=>{
+       const xx=x+i*22,yy=130+i*44,w=400-i*44,hh=400-i*88;
+       s+=`<g class="nd" data-id="${id}-${i}" data-k="${k}"><rect x="${xx}" y="${yy}" width="${w}" height="${hh}" rx="8" style="fill:color-mix(in srgb,${c} 9%,var(--surface));stroke:${c};stroke-width:1.4"/>${T(xx+12,yy+18,l,'hd').replace('class="hd"',`class="hd" style="fill:${c.replace(')','-ink)')}"`)}${T(xx+12,yy+33,sub,'sm mono')}</g>`;});
+     return s;};
+   o+=stack(30,'snd','YOUR LAPTOP WRAPS','to: your home router (the next device)');
+   o+=stack(770,'rcv','SERVER UNWRAPS','from: the last router before the server');
+   o+=router('rtr',600,300,'Router','');
+   o+=wire([432,300],[576,300])+wire([624,300],[768,300]);
+   o+=T(600,370,'opens Link + Internet only:','sm','middle')+T(600,386,'reads the IP address,','sm','middle')+T(600,402,'adds a new Link envelope','sm','middle');
+   o+=T(600,570,'Later views call these layers L2 (Link), L3 (Internet), L4 (Transport) and L7 (Application).','lbl','middle');
+   return o;}},
+
+{id:'dns',label:'Names to addresses (DNS)',hint:'the phone book',t:'Names to addresses: DNS',
+ blurb:'People use names like example.com, but packets need numbers. <b>DNS</b> is the Internet\'s phone book. Your computer asks a helper called a <b>resolver</b>. If the resolver doesn\'t already know, it asks the root servers who handles ".com", asks those who handles "example.com", then asks that server for the number. It remembers the answer for a while.',
+ key:'DNS turns the names people use into the numbers networks need, by asking a chain of servers.',
+ pic:'A librarian: the main index points to the right section, the section points to the right shelf, the shelf has the book. The librarian remembers popular answers.',
+ rem:['Your computer only ever asks one helper: the resolver.','The resolver walks the tree from the top: root → .com → example.com\'s own server.','Answers are remembered (cached) for a set time, so most lookups are instant.'],
+ tan:'Fig. 7-6 shows a resolver looking up a remote name in 10 steps: the same walk shown here. §7.1.3 explains root, top-level and authoritative name servers.',
+ ctl:s=>tog(s,'cached','The resolver already remembers the answer','Someone looked it up recently.'),
+ bridge:'Cloud DNS hosts your own names. Inside a VPC, every VM asks a resolver at 169.254.169.254 (view 4\'s special ranges).',
+ run:s=>{if(s.cached)return {hops:[B('lap','You type example.com','Your computer asks its resolver: "what is example.com\'s address?"',{k:'base-resolver'}),B('res','The resolver remembers','Someone asked recently, so it answers instantly from memory.',{k:'base-resolver'}),B('lap','Answer: 93.184.215.14','One round trip instead of four.',{k:'base-ip'})],ok:true,summary:'Remembered answers make DNS fast.'};
+   return {hops:[B('lap','You type example.com','Your computer needs a number. It asks its resolver: "what is example.com\'s address?"',{k:'base-resolver'}),
+     B('res','The resolver checks its memory','Nothing remembered, so it starts at the top of the tree.',{k:'base-resolver'}),
+     B('root','Root server','"I don\'t know example.com, but these servers handle everything ending in .com."',{k:'base-root'}),
+     B('res','The resolver follows the pointer','',{k:'base-resolver'}),
+     B('com','.com server','"example.com is handled by its own server, ns.example.com. Here is its address."',{k:'base-tld'}),
+     B('res','The resolver follows the next pointer','',{k:'base-resolver'}),
+     B('auth','example.com\'s own server','"example.com is 93.184.215.14." This is the real, official answer.',{k:'base-auth'}),
+     B('res','The resolver remembers it','It keeps the answer for the time the owner allowed (often minutes to hours), and passes it on.',{k:'base-resolver'}),
+     B('lap','Answer: 93.184.215.14','Your computer can now address packets to the server.',{k:'base-ip'})],ok:true,summary:'Four questions, three servers, one answer, now remembered.'};},
+ draw(s,hits){let o='';
+   o+=host('lap',120,330,'Your laptop','asks one question');
+   const nb=(id,x,y,w,t,sub,k,px,py)=>{P(id,px,py);return `<g class="nd" data-id="${id}" data-k="${k}"><rect x="${x}" y="${y}" width="${w}" height="72" rx="8" style="fill:var(--surface);stroke:var(--text);stroke-width:1.4"/>${T(x+w/2,y+22,t,'lbl b','middle')}${T(x+w/2,y+38,sub,'sm','middle')}</g>`;};
+   const R=[420,358],RT=[810,176],CM=[990,358],AU=[760,566];
+   o+=wire([150,330],R,'dl')+wire(R,RT,'dl')+wire(R,CM,'dl')+wire(R,AU,'dl');
+   o+=nb('res',320,300,200,'Resolver','your ISP\'s, or 8.8.8.8','base-resolver',...R)+T(420,390,s.cached?'memory: example.com = 93.184.215.14':'memory: (empty)','xs mono','middle');
+   o+=nb('root',700,110,220,'Root server','knows who runs .com, .org, .za…','base-root',...RT);
+   o+=nb('com',880,300,220,'.com server','knows who runs each .com name','base-tld',...CM);
+   o+=nb('auth',700,500,240,'example.com\'s server','holds the real answer','base-auth',...AU);
+   const lab=[[262,318,'1 · what is example.com?'],[520,262,'2 · who runs .com?'],[720,262,'3 · ask the .com servers'],[705,346,'4 · who runs example.com?'],[705,382,'5 · ask ns.example.com'],[540,470,'6 · what is example.com?'],[720,470,'7 · 93.184.215.14'],[262,372,'8 · 93.184.215.14']];
+   if(!s.cached)lab.slice(0,Math.max(0,hits.length-1)).forEach(([x,y,t])=>{o+=T(x,y,t,'msg','middle');});
+   else if(hits.length>1)o+=T(262,318,'what is example.com?','msg','middle')+(hits.length>2?T(262,372,'93.184.215.14 (remembered)','msg','middle'):'');
+   o+=T(600,600,'Numbers follow Tanenbaum Fig. 7-6. Press Step to watch each question.','sm','middle');
+   return o;}},
+
+{id:'req',label:'A request and its response',hint:'everything together',t:'A request and its response, end to end',
+ blurb:'Pressing Enter on https://example.com sets off five things in order: look up the address (<b>DNS</b>), open a connection (a three-message <b>handshake</b>), agree a secret (<b>TLS</b>), send the <b>request</b>, and receive the <b>response</b>, which arrives as packets that are put back in order.',
+ key:'One click = look up the address, shake hands, agree a secret, ask, and receive.',
+ pic:'Looking up a shop\'s number, ringing and checking the line is clear, agreeing a code word, placing your order, and receiving it in several parcels.',
+ rem:['Time runs downwards. Each arrow crosses your home router, your ISP and the Internet (lessons 5 and 6).','Before the page arrives, about four round trips have happened.','That is why a front door close to you (Google\'s edge, view 1) makes sites feel faster.'],
+ tan:'Fig. 6-37 shows the TCP handshake; Fig. 1-2 shows requests and replies; §7.3 covers the Web and §8.9.3 the secure layer (SSL, now TLS).',
+ ctl:s=>tog(s,'known','Address already known','The browser looked up example.com recently, so DNS is skipped.'),
+ bridge:'Google\'s front end (GFE) does the handshake and TLS at the edge location near you, so those round trips are short (view 1).',
+ run:s=>{const LP=170,RS=470,SV=1030;let y=150;const at=x=>{const p=[x,y];y+=40;return p;};
+   const h=[B(null,'You press Enter on https://example.com','The browser first needs the server\'s address.',{at:at(LP),k:'base-host'})];
+   if(!s.known)h.push(B(null,'DNS: "what is example.com?"','Asked of the resolver (lesson 8).',{at:at(RS),k:'base-resolver',m:'what is example.com?'}),B(null,'DNS answer: 93.184.215.14','',{at:at(LP),k:'base-ip',m:'93.184.215.14'}));
+   h.push(B(null,'Handshake 1: "Can we talk?"','Sent to port 443. This is TCP, the part that makes delivery reliable. The message is called SYN.',{at:at(SV),k:'base-tcp',m:'SYN · can we talk?'}),
+     B(null,'Handshake 2: "Yes. Can you hear me?"','Called SYN-ACK.',{at:at(LP),k:'base-tcp',m:'SYN-ACK · yes, can you hear me?'}),
+     B(null,'Handshake 3: "Yes, let\'s go" + "let\'s encrypt"','Called ACK. Both sides now agree on numbering, so lost pieces can be noticed. The browser also starts TLS: "here are the codes I support, and my half of a key".',{at:at(SV),k:'base-tls',m:'ACK + hello, my half of a key'}),
+     B(null,'The server proves who it is','It sends its certificate, a signed ID card saying "I really am example.com", plus its half of the key. Both sides now share a secret no eavesdropper can work out.',{at:at(LP),k:'base-tls',m:'certificate + my half of the key'}),
+     B(null,'The request: "GET /"','Encrypted. It asks for the home page.',{at:at(SV),k:'base-http',m:'GET /   (encrypted)'}),
+     B(null,'The response: "200 OK" + the page','Encrypted, and usually many packets, put back in order (lesson 2).',{at:at(LP),k:'base-http',m:'200 OK + the page'}));
+   y+=20;h.push(B(null,'The page appears',`Count the arrows that crossed the Internet: ${s.known?3:4} round trips before the page arrived.`,{at:at(LP),k:'base-http'}));
+   return {hops:h,ok:true,summary:`${s.known?'3':'4'} round trips: ${s.known?'':'DNS, '}handshake, security, request/response.`};},
+ draw(s,hits){let o='';const LP=170,RS=470,SV=1030;
+   [[LP,'Your laptop','192.168.1.20','base-host'],[RS,'Resolver','DNS helper','base-resolver'],[SV,'Server','example.com · 93.184.215.14','base-host']].forEach(([x,t,sub,k],i)=>{P('ll'+i,x,80);
+     o+=`<g class="nd" data-id="ll${i}" data-k="${k}"><rect x="${x-90}" y="62" width="180" height="40" rx="8" style="fill:var(--surface);stroke:var(--text);stroke-width:1.4"/>${T(x,80,t,'lbl b','middle')}${T(x,94,sub,'xs mono','middle')}</g>`+wire([x,102],[x,600],'life');});
+   o+=T(750,126,'every arrow crosses your home router, your ISP and the Internet','xs','middle');
+   const tr=S.trace;if(tr){for(let i=1;i<hits.length;i++){const a=tr.hops[i-1].at,b=tr.hops[i].at,m=tr.hops[i].m;if(m)o+=msg(a,b,m);}
+     const ph=[];let y=150;const add=(n,lab)=>{ph.push([y-36,y+n*40-44,lab]);y+=n*40;};add(1,'');if(!s.known)add(2,'DNS');add(3,'Connect · TCP');add(1,'Secure · TLS');add(2,'Ask · HTTP');
+     ph.filter(p=>p[2]).forEach(([a,b,l])=>{o+=`<rect x="1072" y="${a}" width="4" height="${b-a}" rx="2" style="fill:var(--primary)"/>`+T(1084,(a+b)/2+4,l,'ph');});}
+   return o;}},
+
+{id:'nat',label:'Private addresses and sharing one',hint:'NAT',t:'Private addresses and sharing one public address',
+ blurb:'There are not enough addresses for every device, so homes and offices use <b>private addresses</b> (like 192.168.1.20) that are reused everywhere and can\'t be reached from the Internet. The router swaps in its one <b>public address</b> on the way out, notes who asked, and swaps it back for the reply.',
+ key:'Private addresses are reused everywhere. A router swaps in its one public address and remembers who asked.',
+ pic:'A hotel reception. Outgoing letters carry the hotel\'s address; the reception\'s log routes each reply to the right room. A letter addressed only to "the hotel" from a stranger can\'t be delivered to any room.',
+ rem:['Private ranges: 10.x, 172.16–31.x, 192.168.x. Every home reuses them.','Outgoing: the router swaps the "From" address and writes a note.','Incoming from a stranger: no note, so it is dropped. That is why private machines are hidden by default.'],
+ tan:'Fig. 5-55 shows the placement and operation of a NAT box; §5.6.2 lists the private ranges.',
+ ctl:s=>seg(s,'dir','Who starts the conversation?',[['out','You (laptop → server)'],['in','A stranger (→ your laptop)']]),
+ bridge:'VMs use private addresses. Cloud NAT does this router\'s swap in software; an "external IP" is a fixed one-to-one swap (views 3 and 4).',
+ run:s=>{if(s.dir==='in')return {hops:[B('str','A stranger tries to connect','It can only address your home\'s public address, 203.0.113.5. It can\'t name your laptop: 192.168.1.20 exists in millions of homes.',{k:'base-private'}),B('inet','Across the Internet','',{k:'base-owned'}),B('rtr','The router checks its notes','Nobody inside started this conversation, so there is no note saying who it is for. Dropped.',{k:'base-nat'})],ok:false,summary:'Outsiders can\'t start conversations in: there is no note to follow.'};
+   return {hops:[B('lap','Laptop sends from 192.168.1.20','A private address. The Internet could never send a reply to it.',{k:'base-private'}),
+     B('rtr','The router swaps the "From" address','From becomes 203.0.113.5 port 62001, the router\'s one public address. It writes a note: "62001 belongs to the laptop".',{k:'base-nat'}),
+     B('inet','Across the Internet','',{k:'base-owned'}),
+     B('srv','The server sees only the router','It replies to 203.0.113.5 port 62001.',{k:'base-host'}),
+     B('inet','Back across the Internet','',{k:'base-owned'}),
+     B('rtr','The router reads its note','62001 → the laptop. It swaps the address back to 192.168.1.20.',{k:'base-nat'}),
+     B('lap','Reply delivered','The server never learned the laptop\'s private address.',{k:'base-host'})],ok:true,summary:'One public address shared by the whole home, with a note per conversation.'};},
+ draw(s,hits){let o=net(30,100,440,460,'Home · private addresses','192.168.1.x is reused in millions of homes');
+   o+=host('lap',150,210,'Laptop','192.168.1.20')+host('ph',150,340,'Phone','192.168.1.21')+host('tv',150,470,'TV','192.168.1.22');
+   o+=router('rtr',470,320,'','','base-nat')+T(470,266,'Home router','lbl b','middle')+T(470,281,'public 203.0.113.5','sm mono','middle');
+   o+=wire([180,210],[446,314])+wire([180,340],[446,324])+wire([180,470],[450,334]);
+   o+=own('inet',720,320,110,54,'The Internet','','inet','base-owned');
+   o+=host('srv',1050,250,'Server','93.184.215.14')+host('str',1050,470,'Stranger','198.51.100.9','base-host',{cls:'bad'});
+   o+=wire([494,320],[610,320])+wire([830,305],[1020,255])+wire([830,335],[1020,465]);
+   const noted=s.dir==='out'&&hits.length>=2;
+   o+=`<g class="nd" data-id="notes" data-k="base-nat"><rect x="330" y="580" width="560" height="40" rx="6" style="fill:${noted?'var(--hit-bg)':'var(--surface)'};stroke:${noted?'var(--accent)':'var(--line)'}"/>${T(344,598,'ROUTER\'S NOTES','hd')}${T(344,613,noted?'203.0.113.5 port 62001 ↔ laptop 192.168.1.20 port 51000':'(empty: nobody inside has started a conversation)','sm mono')}</g>`;
+   return o;}},
+
+{id:'map',label:'From here to Google Cloud',hint:'the map',t:'From here to Google Cloud',
+ blurb:'Google Cloud is built from these same ideas, just made of software instead of boxes and cables. Each row below maps an idea from this view to its Google Cloud name. <b>Click a row</b> to open the view where it appears.',
+ key:'Google Cloud is these same ideas, built in software. Click a row to jump to its view.',
+ pic:'Same postal system, but the buildings, mailrooms and sorting offices are drawn in software on top of Google\'s roads.',
+ rem:['Nothing in Google Cloud replaces these basics. It automates them.','The only new idea is projects and permissions (IAM): who may change or use the network.'],
+ tan:'Tanenbaum §5.5.3 (tunneling) explains how a virtual network rides on a physical one, the bridge to view 3.',
+ draw(){let o=T(60,92,'WHAT YOU LEARNED','hd')+T(420,92,'IN GOOGLE CLOUD IT IS…','hd')+T(900,92,'SEE VIEW','hd');
+   [['Host','A VM (virtual machine)','3 · VPC overlay','vpc'],['Link and switch','Google\'s fibre + software on every machine','1 · Backbone','backbone'],['One local network','A subnet (one region)','3 · VPC overlay','vpc'],['IP address, range like /24','Internal IP, subnet range, reserved addresses','4 · Addressing','addr'],['Router and route table','VPC routes and "next hop"','3 · VPC overlay','vpc'],['Networks announcing routes','Cloud Router','2 · Hybrid connectivity','hybrid'],['The Internet; owned networks meeting','Google\'s edge locations; Premium vs Standard tier','1 · Backbone','backbone'],['Private addresses and NAT','Internal IPs, Cloud NAT, external IP','3 · VPC overlay','vpc'],['Ports and labels a guard checks','Firewall rules and policies','5 · Firewalls','fw'],['A private link between two sites','VPN and Interconnect','2 · Hybrid connectivity','hybrid'],['Joining two separate networks','VPC peering, Shared VPC, Private Service Connect','7 · Peering & beyond','peering'],['Who may use or change the network','Projects and IAM (new: not a networking idea)','6 · Projects & Shared VPC','shared']].forEach(([a,b,c,v],i)=>{const y=104+i*43;
+     o+=`<g class="nd maprow" data-id="go-${v}-${i}" data-k="base-map"><rect x="40" y="${y}" width="1120" height="37" rx="6"/>${T(60,y+23,a,'lbl b')}${T(420,y+23,b,'lbl')}${T(900,y+23,c+'  →','lbl').replace('class="lbl"','class="lbl" style="fill:var(--primary)"')}</g>`;});
+   return o;}}
+];
+const cur=()=>LS.find(l=>l.id===S.scen.basics)||LS[0];
+function go(id){stopAnim();S.step=-1;S.selK=S.selId=null;S.scen.basics=id;renderControls();renderScens();render();}
+$('#insp').addEventListener('click',e=>{const a=e.target.closest('[data-lesson]');if(!a)return;e.preventDefault();go(a.dataset.lesson);});
+
+VIEWS.unshift({id:'basics',tab:'First principles',scenHead:'Lessons · start here',
+  get title(){const l=cur();return `0.${LS.indexOf(l)+1} · ${l.t}`;},
+  get blurb(){return cur().blurb;},
+  get noTrace(){return !cur().run;},
+  get intro(){const l=cur(),i=LS.indexOf(l),n=LS[i+1];
+    return `<div class="box an"><b>Everyday picture</b>${esc(l.pic)}</div><b style="color:var(--text)">Remember</b><ul>${l.rem.map(r=>`<li>${esc(r)}</li>`).join('')}</ul><div class="box fp"><b>Tanenbaum, Computer Networks 5e</b>${esc(l.tan)}</div>`+
+      (l.run?'<p>Press <b>Step</b> to go one stage at a time, or <b>Send</b> to play it.</p>':'')+
+      (n?`<p><a href="#" data-lesson="${n.id}">Next: ${i+2}. ${esc(n.label)} →</a></p>`:'<p><a href="#backbone">Continue to view 1 · Backbone →</a></p>');},
+  defaults:{lose:false,dst:'school',transit:false,cached:false,known:false,dir:'out'},
+  controls:[{type:'html',html:s=>{const l=cur();return l.ctl?l.ctl(s):'<p class="dim" style="font-size:12.5px;margin:0">No settings for this lesson.</p>';}}],
+  scenarios:LS.map((l,i)=>({id:l.id,label:`${i+1}. ${l.label}`,hint:l.hint,preset:()=>{S.selK=S.selId=null;},run:l.run})),
+  draw(s,hits){const l=cur();return T(24,40,l.key,'key')+l.draw(s,hits)+(l.bridge?bridge(l.bridge):'');},
+  onClick(id){if(id.startsWith('go-')){const v=id.split('-')[1];setTimeout(()=>{location.hash=v;},0);}},
+  promptCtx:()=>`I'm on the lesson "${cur().t}". Explain it as if I have no networking background, with a simple everyday picture, then connect it to Google Cloud.`
+});
+})();
 </script>
 <script>
 /* ================= VIEW 1 · BACKBONE (physical lens) ================= */
@@ -1247,6 +1622,10 @@ VIEWS.push({id:'peering',tab:'Peering & beyond',title:'7 · Between VPCs: peerin
 const PCSE2=['PCSE course · Section 2: Securing Communications and Establishing Boundary Protection (PDF)','https://storage.googleapis.com/cloud-training/T-GCPPCS-B/1.0/on-demand/PCSE_Section_2_Securing_Communications_and_Establishing_Boundary_Protection_v1.0.pdf'];
 const NOTES='Source: the compiled notes "Google Cloud Networking" (PDF)';
 const SOURCES={
+ basics:{consulted:[['Tanenbaum, Computer Networks 5e (your PDF): §1.1 definition of a network, §1.5.1 and Fig. 1-29 Internet architecture, §7.1.3 and Fig. 7-6 DNS lookup',''],PCSE2],
+  docs:[['VPC networks','vpc/docs/vpc'],['Routes','vpc/docs/routes'],['Cloud DNS overview','dns/docs/overview'],['Cloud NAT overview','nat/docs/overview'],['About firewalls','firewall/docs/about-firewalls']],
+  tan:['§1.1, Fig. 1-1 What a network is','Fig. 1-2 Requests and replies','Fig. 2-42 Circuit vs packet switching','§5.6.2, Fig. 5-48 IP addresses and prefixes','Fig. 6-34 Well-known ports','§4.3.4, Fig. 1-8(b) Switched Ethernet','§5.1.1, Fig. 5-2 Routing with next-hop tables','Fig. 1-29 Overview of the Internet architecture','Fig. 5-45 The Internet as a collection of networks','Fig. 1-14, 1-15, 1-21 Layers and headers','§7.1.3, Fig. 7-6 DNS lookup in 10 steps','Fig. 6-37 TCP handshake','§7.3.4 HTTP · §8.9.3 SSL/TLS','Fig. 5-55 NAT'],
+  notes:['Postal Service / Autobahn mental model (used for the everyday pictures)']},
  backbone:{consulted:[['Network edge locations (200+ locations)','https://docs.cloud.google.com/vpc/docs/edge-locations'],['Global locations: regions & zones (43 regions / 130 zones, updated Oct 2026)','https://cloud.google.com/about/locations'],['Google global network principles and innovations (blog)','https://cloud.google.com/blog/products/networking/google-global-network-principles-and-innovations'],['Global, regional, and zonal resources','https://docs.cloud.google.com/compute/docs/regions-zones/global-regional-zonal-resources'],['Geography and regions (Cloud Storage redundancy, DR guidance)','https://docs.cloud.google.com/docs/geography-and-regions'],['Regional disks (synchronous 2-zone replication)','https://docs.cloud.google.com/compute/docs/disks/regional-persistent-disk'],['Building blocks of reliability','https://docs.cloud.google.com/architecture/infra-reliability-guide/building-blocks']],
   docs:[['Regions and zones','compute/docs/regions-zones'],['Network Service Tiers','network-tiers/docs/overview'],['External Application Load Balancer (GFE)','load-balancing/docs/https'],['Cloud CDN overview','cdn/docs/overview'],['Media CDN overview','media-cdn/docs/overview'],['Encryption in transit','docs/security/encryption-in-transit']],
   tan:['§1.2.4 Wide Area Networks','§1.2.5 Internetworks','§2.2.5 Fiber Optics','§5.2.9 Anycast Routing','§5.6.7 BGP','§6.5.5 TCP Connection Establishment','§7.5.3 Content Delivery Networks'],
@@ -1276,7 +1655,7 @@ const SOURCES={
   tan:['§5.6.7 BGP (route policy: learned ≠ advertised)','§5.6.2 IP Addresses (uniqueness, NAT)'],
   notes:['"Case 2: Different VPC Communication (VPC Peering)" (corrected here: no tunnel, no Cloud Router)']}};
 function renderSources(){const s=SOURCES[S.view],el=$('#srcs');if(!s){el.innerHTML='';return;}
-  const a=([l,u])=>`<li><a href="${u.startsWith('http')?u:D+u}" target="_blank" rel="noopener">${esc(l)}</a></li>`;
+  const a=([l,u])=>u?`<li><a href="${u.startsWith('http')?u:D+u}" target="_blank" rel="noopener">${esc(l)}</a></li>`:`<li>${esc(l)}</li>`;
   el.innerHTML=`<div><h5>Consulted this session</h5><ul>${s.consulted.map(a).join('')}</ul></div>`+
    `<div><h5>Google Cloud docs (verify here)</h5><ul>${s.docs.map(a).join('')}</ul></div>`+
    `<div><h5>First principles · Tanenbaum, Computer Networks 5e</h5><ul>${s.tan.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div>`+
@@ -1288,6 +1667,18 @@ function renderSources(){const s=SOURCES[S.view],el=$('#srcs');if(!s){el.innerHT
 /* ================= INDEX OF TERMS =================
    [term, expansion, short intuitive explanation, 'a' acronym | 't' jargon] */
 const GLOSS=[
+['Client / server','','The client asks (your browser); the server answers (the website\'s computer). One computer can be both.','t'],
+['Handshake','TCP connection setup','Three short messages, "can we talk?", "yes, can you hear me?", "yes", that open a reliable connection before any data is sent.','t'],
+['Host','','Any device on a network that sends or receives messages: laptop, phone, server, printer, or a VM.','t'],
+['Layer','','One job in sending a message (application, transport, internet, link). Each layer wraps the message in its own envelope.','t'],
+['Link','','Whatever physically carries signals between two devices: copper cable, fibre, or radio.','t'],
+['Packet','','A small, labelled piece of a message: from, to, and which piece it is. Everything on the Internet travels this way.','t'],
+['Port','','A number saying which program on a computer a packet is for, like a flat number in a building. 443 = web, 22 = SSH.','t'],
+['Protocol','','An agreed set of rules for a conversation between machines, like the etiquette of a phone call. TCP, IP, DNS and HTTP are protocols.','t'],
+['Resolver','DNS helper','The server your computer asks to look up names. It asks the root, .com and the domain\'s own server for you, and remembers answers.','t'],
+['Router','','A device joining two or more networks. It passes each packet one step closer to its destination using its route table.','t'],
+['Switch','','A junction box joining the hosts of one local network, passing each packet only to the host it is for.','t'],
+['Default gateway','','The router a host hands everything to when the destination is not on its own network.','t'],
 ['802.1Q','IEEE VLAN tagging','A small tag on each Ethernet frame saying which virtual network it belongs to. Lets one cable carry many separate networks. Each Interconnect VLAN attachment is one tag.','a'],
 ['Andromeda','Google\'s network virtualisation stack','Software on every Google host that turns your VPC configuration into real packet forwarding. It is what makes a VPC "exist".','t'],
 ['Anycast','','One IP address announced from many places at once. The network delivers you to the nearest one. How one load balancer IP is served from 200+ PoPs.','t'],
