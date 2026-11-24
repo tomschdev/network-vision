@@ -247,6 +247,21 @@ svg .rule.hit.deny rect{fill:var(--bad-bg)}
 svg .rule.hit.goto rect{fill:var(--iam-bg)}
 svg .bit rect{stroke:var(--canvas);stroke-width:1}
 svg .legend text{font-size:9.5px;fill:var(--muted)}
+#glossary,dl.gloss .L{scroll-margin-top:96px}
+.gloss-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.gloss-tools input{flex:1 1 240px;max-width:420px}
+.gloss-az{display:flex;flex-wrap:wrap;gap:2px}
+.gloss-az a{font:500 12px var(--mono);color:var(--primary);text-decoration:none;padding:2px 6px;border-radius:4px}
+.gloss-az a:hover{background:var(--primary-bg)}
+.gloss-az a.off{color:var(--dim);pointer-events:none}
+dl.gloss{margin:0;columns:3 300px;column-gap:28px}
+dl.gloss .g{break-inside:avoid;padding:6px 0 8px;border-bottom:1px solid var(--line-2)}
+dl.gloss .L{break-inside:avoid;font:500 13px var(--mono);color:var(--primary);padding:10px 0 2px}
+dl.gloss dt{font-size:13.5px}dl.gloss dt b{font-weight:700;font-family:var(--mono)}
+dl.gloss dt span{color:var(--muted);font-size:12.5px;margin-left:6px}
+dl.gloss dd{margin:2px 0 0;font-size:13px;color:var(--text)}
+dl.gloss .t dt b{font-family:var(--sans);font-weight:500}
+.gloss-empty{color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
@@ -256,6 +271,7 @@ svg .legend text{font-size:9.5px;fill:var(--muted)}
     <div><h1>GCP Network Vision</h1><p>From Google's physical backbone up to the VPC you configure. Click anything to inspect it. Pick a scenario and send a packet. Nothing moves until you do.</p></div>
   </div>
   <div class="lens" id="lens"></div>
+  <button class="iconbtn" id="bGloss" type="button">A–Z Terms</button>
   <button class="iconbtn" id="bTheme" type="button" aria-label="Toggle light or dark theme">◐ Theme</button>
 </div></header>
 <div class="wrap">
@@ -276,6 +292,11 @@ svg .legend text{font-size:9.5px;fill:var(--muted)}
       <div class="card"><details class="notes" id="notes"><summary></summary><ul></ul></details></div>
     </aside>
   </div>
+  <section class="card" id="glossary">
+    <h2>Index of terms · every acronym on this page</h2>
+    <div class="gloss-tools"><input type="text" id="gq" name="glossary-filter" placeholder="Filter, e.g. BGP or tunnel" aria-label="Filter terms"><div class="gloss-az" id="gaz"></div></div>
+    <dl class="gloss" id="gl"></dl>
+  </section>
   <section class="card">
     <h2>Ask Claude about what you're looking at</h2>
     <div class="prompt"><pre id="prompt"></pre><button class="btn" id="bCopy">Copy</button></div>
@@ -1264,6 +1285,125 @@ function renderSources(){const s=SOURCES[S.view],el=$('#srcs');if(!s){el.innerHT
 (()=>{const root=document.documentElement,b=$('#bTheme');let t;try{t=localStorage.getItem('nv-theme')}catch(e){}
   if(t)root.dataset.theme=t;
   b.onclick=()=>{const dark=root.dataset.theme?root.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;root.dataset.theme=dark?'light':'dark';try{localStorage.setItem('nv-theme',root.dataset.theme)}catch(e){}};})();
+/* ================= INDEX OF TERMS =================
+   [term, expansion, short intuitive explanation, 'a' acronym | 't' jargon] */
+const GLOSS=[
+['802.1Q','IEEE VLAN tagging','A small tag on each Ethernet frame saying which virtual network it belongs to. Lets one cable carry many separate networks. Each Interconnect VLAN attachment is one tag.','a'],
+['Andromeda','Google\'s network virtualisation stack','Software on every Google host that turns your VPC configuration into real packet forwarding. It is what makes a VPC "exist".','t'],
+['Anycast','','One IP address announced from many places at once. The network delivers you to the nearest one. How one load balancer IP is served from 200+ PoPs.','t'],
+['API','Application Programming Interface','The set of requests a program accepts. "Google APIs" are Google services you call over HTTPS, e.g. storage.googleapis.com.','a'],
+['AS','Autonomous System','One organisation\'s network on the Internet, run under one routing policy (your ISP, Google). The Internet is tens of thousands of ASes joined by BGP.','a'],
+['ASN','Autonomous System Number','The ID number of an AS. Google is 15169. Cloud Router uses 16550 for Partner Interconnect. 64512–65534 are private, for your own routers.','a'],
+['AWS','Amazon Web Services','Amazon\'s cloud. Here it is the "other cloud" reached by Cross-Cloud Interconnect.','a'],
+['B2 / B4','Google\'s two backbone WANs','B2 carries user traffic to and from the Internet. B4 is the software-defined network between Google\'s data centers.','t'],
+['BGP','Border Gateway Protocol','How networks tell each other "I can reach these addresses". Routers swap route lists, like post offices swapping delivery maps. Cloud Router speaks BGP with your router.','a'],
+['CCI','Cross-Cloud Interconnect','A dedicated physical link between Google Cloud and another cloud (AWS, Azure, Oracle…).','a'],
+['CDN','Content Delivery Network','Copies of popular content kept near users, so it doesn\'t travel from the origin every time. Cloud CDN caches at Google\'s PoPs.','a'],
+['CIDR','Classless Inter-Domain Routing','Writing an address range as address/prefix. In 10.0.0.0/24, the first 24 bits are fixed and the last 8 number the hosts (256 addresses).','a'],
+['Cloud Router','','Google\'s BGP speaker. It only exchanges routes with your router and programs them into the VPC. It never forwards a packet itself.','t'],
+['Cold-potato / hot-potato','','Cold-potato (Premium tier): Google carries your traffic on its own network as far as possible. Hot-potato (Standard tier): hand it to the public Internet as soon as possible.','t'],
+['Colocation facility','also "colo", "meet-me room"','A neutral building where many networks rent space and run cables to each other. Dedicated Interconnect is a cable in one of these.','t'],
+['Connection tracking','stateful firewall','The firewall remembers flows it allowed, so replies come back in automatically without a rule of their own.','t'],
+['DDoS','Distributed Denial of Service','Flooding a service from many machines to knock it over. Google\'s edge and Cloud Armor absorb it before it reaches you.','a'],
+['Default route','0.0.0.0/0','The "everything else" route. It matches any address, so it is used only when nothing more specific matches. In GCP it usually points at the Internet gateway.','t'],
+['DHCP','Dynamic Host Configuration Protocol','How a machine gets its IP address when it boots. In GCP the metadata server (169.254.169.254) answers.','a'],
+['DNS','Domain Name System','The Internet\'s phone book: turns names (example.com) into IP addresses.','a'],
+['DR','Disaster Recovery','Plans and copies that let you recover after losing a zone or region.','a'],
+['EAD','Edge Availability Domain','One of two independent halves of a Google colocation site. Put one Interconnect in each so maintenance on one never cuts you off.','a'],
+['eBGP','external BGP','BGP between two different ASes, e.g. your router and Cloud Router.','a'],
+['ECMP','Equal-Cost Multi-Path','When several routes are equally good, traffic is spread over all of them instead of picking one.','a'],
+['Egress / ingress','','Egress = traffic leaving a VM. Ingress = traffic arriving at a VM. Firewall rules are written for one direction.','t'],
+['Encapsulation / tunnel','','Putting a whole packet inside another packet, like a letter inside a courier envelope. VPNs and VPC overlays work this way.','t'],
+['ESP','Encapsulating Security Payload','The IPsec envelope: it encrypts the original packet and wraps it in a new one. This is what VPN tunnels carry.','a'],
+['Espresso','Google\'s peering edge','Software at each PoP that picks which ISP link to use for each user, based on measured performance.','t'],
+['FAQ','Frequently Asked Questions','','a'],
+['FQDN','Fully Qualified Domain Name','A complete hostname, e.g. storage.googleapis.com.','a'],
+['GA','General Availability','The feature is finished and covered by Google\'s SLA (as opposed to Preview).','a'],
+['Gbps / Mbps','Gigabits / megabits per second','Link speed. 1 Gbps = 1,000 Mbps ≈ 125 megabytes of data per second.','a'],
+['GCP','Google Cloud Platform','Google Cloud.','a'],
+['GFE','Google Front End','Google\'s reverse proxy at the edge. It ends your TLS connection near you, applies Cloud Armor, then carries the request over Google\'s backbone to your backend.','a'],
+['GGC','Google Global Cache','Google servers placed inside ISPs\' own networks, so YouTube and similar content never has to leave the ISP.','a'],
+['GKE','Google Kubernetes Engine','Google\'s managed Kubernetes, which runs containers on clusters of VMs.','a'],
+['HA','High Availability','Built from redundant parts so one failure doesn\'t cause an outage. HA VPN = two interfaces, 99.99% SLA.','a'],
+['Health check','','A regular "are you alive?" probe from the load balancer (from 35.191.0.0/16 and 130.211.0.0/22). Failing backends stop getting traffic.','t'],
+['HTTP / HTTPS','Hypertext Transfer Protocol (Secure)','The web\'s request/response protocol. HTTPS is HTTP inside TLS encryption.','a'],
+['IAM','Identity and Access Management','Who may do what on which resource. E.g. compute.networkUser lets a service project use a shared subnet.','a'],
+['IAP','Identity-Aware Proxy','Google checks who you are, then tunnels your SSH or RDP to a VM that has no public IP. The traffic arrives from 35.235.240.0/20.','a'],
+['ICMP','Internet Control Message Protocol','Network status messages, e.g. ping and "destination unreachable". It has no ports.','a'],
+['IEEE','Institute of Electrical and Electronics Engineers','The standards body behind Ethernet, VLANs (802.1Q), MACsec and LACP.','a'],
+['IKE','Internet Key Exchange (IKEv1 / IKEv2)','The handshake two VPN gateways use to agree on encryption keys before sending traffic.','a'],
+['Implied rules','','Two firewall rules every VPC has and you can\'t delete: deny all ingress, allow all egress, at the lowest priority (65535).','t'],
+['Interconnect','Cloud Interconnect','A private physical connection between your network and Google\'s, bypassing the Internet. Dedicated = your own cable; Partner = through a service provider.','t'],
+['IP','Internet Protocol','The addressing and delivery layer. Every packet carries a source and a destination IP address, like an envelope.','a'],
+['IPsec','IP security','Encrypts and authenticates IP packets. Cloud VPN is built on it.','a'],
+['IPv4','IP version 4','32-bit addresses written as four numbers, e.g. 10.10.0.2.','a'],
+['ISP','Internet Service Provider','The company that connects your home or office to the Internet: your "last mile".','a'],
+['IXP','Internet Exchange Point','A building where many networks plug into a shared switch to swap traffic directly. One of the places Google meets ISPs.','a'],
+['Jupiter','Google\'s data-center fabric','The huge switching network inside each Google data center that connects every machine.','t'],
+['L2 / L3 / L4 / L7','Layers of the network model','L2 = local links and frames (Ethernet, VLAN). L3 = IP addresses and routing. L4 = ports (TCP/UDP). L7 = applications (HTTP). An "L3 partner" also does the routing for you.','a'],
+['LACP','Link Aggregation Control Protocol','Bundles several physical circuits into one logical link, for more bandwidth and redundancy.','a'],
+['LAN / VLAN','Local Area Network / Virtual LAN','A LAN is one local network. A VLAN carves one physical LAN into separate virtual ones.','a'],
+['LB','Load Balancer','Spreads incoming requests across healthy backends.','a'],
+['LPM','Longest Prefix Match','When several routes match a destination, the most specific one wins: a /24 beats a /8, like a street address beating a city.','a'],
+['MACsec','Media Access Control security (802.1AE)','Encrypts traffic on one physical link, frame by frame. Optional on Interconnect.','a'],
+['MED','Multi-Exit Discriminator','A BGP hint meaning "prefer to enter my network through this link". Lower wins. Used to make one tunnel the primary.','a'],
+['MIG','Managed Instance Group','A fleet of identical VMs that Google keeps alive and scales. A regional MIG spreads them across zones.','a'],
+['MPLS','Multiprotocol Label Switching','Carrier networks forward packets by a short label instead of looking up the IP address. Many partner and carrier WANs run on it.','a'],
+['NAT','Network Address Translation','Rewrites addresses at a boundary. Cloud NAT lets VMs without public IPs reach the Internet. Replies come back, but nobody outside can start a connection in.','a'],
+['NCC','Network Connectivity Center','A hub that connects many VPCs and on-prem sites and, unlike peering, passes routes between all of them.','a'],
+['Next hop','','Where a route sends the packet next: a VM, a VPN tunnel, the Internet gateway, a peered VPC…','t'],
+['NGFW','Next-Generation Firewall','Cloud NGFW is Google\'s firewall service: rules and policies, plus optional threat inspection.','a'],
+['NIC / vNIC','(virtual) Network Interface Card','A VM\'s network port. Firewall rules are enforced right here, at each VM\'s own vNIC, not at a central box.','a'],
+['OS','Operating System','','a'],
+['Overlay / underlay','','The underlay is the physical network (cables, switches). An overlay is a virtual network drawn on top of it. Your VPC is an overlay on Google\'s backbone.','t'],
+['PCSE','Professional Cloud Security Engineer','A Google Cloud certification. Its course PDF is one of this page\'s sources.','a'],
+['PD','Persistent Disk','A VM\'s network-attached disk. Zonal by default. A regional PD keeps a copy in two zones.','a'],
+['Peering (VPC)','VPC Network Peering','Two VPCs exchange route entries so their VMs can talk on internal IPs. No tunnel, no router. Not transitive.','t'],
+['PGA','Private Google Access','Lets VMs with only internal IPs call Google APIs (Cloud Storage, BigQuery…). Turned on per subnet.','a'],
+['PNI','Private Network Interconnect','A direct cable between Google and one large network (e.g. an ISP), instead of a shared exchange.','a'],
+['PoP','Point of Presence','A Google edge location where Google\'s network meets ISPs. There are 200+; it\'s where your traffic enters Google.','a'],
+['Prefix','also "mask", "/24"','How many leading bits of an address identify the network. Bigger number = smaller, more specific range.','t'],
+['Premium / Standard tier','Network Service Tiers','Premium: traffic rides Google\'s backbone from the PoP nearest the user. Standard: it rides the public Internet to the region. Cheaper, slower.','t'],
+['PSA','Private Services Access','A peering between your VPC and a Google-managed VPC, so services like Cloud SQL get a private IP from your range.','a'],
+['PSC','Private Service Connect','Reach a service through an endpoint IP inside your own VPC. It uses NAT, so overlapping ranges are fine and nothing is peered.','a'],
+['RDP','Remote Desktop Protocol','Windows remote desktop, TCP port 3389.','a'],
+['Region / zone','','A region is a metro area (e.g. us-central1). A zone is an isolated failure domain inside it (us-central1-a). Subnets are regional; VMs are zonal.','t'],
+['RFC','Request for Comments','The Internet\'s standards documents. RFC 1918 defines the private ranges 10/8, 172.16/12 and 192.168/16.','a'],
+['SA','Service Account','An identity for software, not a person. Firewall rules can target VMs by the service account they run as.','a'],
+['SaaS','Software as a Service','Software you use over the network that someone else runs.','a'],
+['SDN','Software-Defined Networking','Routers follow instructions from a central program instead of each working things out alone. B4, Andromeda and Espresso are SDN.','a'],
+['Shared VPC','host / service projects','One host project owns the VPC; other service projects put their VMs in its subnets. Central network team, many app teams. Old name: XPN.','t'],
+['SLA','Service Level Agreement','Google\'s uptime promise, e.g. 99.99% ≈ 4.4 minutes of downtime a month.','a'],
+['SMTP','Simple Mail Transfer Protocol','Email between servers, TCP port 25. GCP always blocks outbound port 25.','a'],
+['SQL','Structured Query Language','The database query language. Cloud SQL = managed MySQL, PostgreSQL or SQL Server.','a'],
+['SSD','Solid-State Drive','Local SSD sits on the physical host: very fast, but lost if the host or zone fails.','a'],
+['SSH','Secure Shell','Encrypted remote terminal login, TCP port 22.','a'],
+['Subnet','subnetwork','A slice of the VPC\'s address space in one region, e.g. 10.10.0.0/24 in us-central1. Spans all of that region\'s zones.','t'],
+['TCP','Transmission Control Protocol','Reliable, in-order delivery with a handshake. Ports (443, 22…) say which application the data is for.','a'],
+['TLS','Transport Layer Security','The encryption behind HTTPS (the padlock). Google\'s edge ends it close to the user.','a'],
+['Transitive','','If A connects to B and B to C, can A reach C through B? With VPC peering: no. With NCC: yes.','t'],
+['TTL','Time To Live','How long a cached answer (e.g. a DNS record) stays valid before it\'s fetched again.','a'],
+['URL','Uniform Resource Locator','A web address.','a'],
+['VIP','Virtual IP','An address not tied to one machine. A load balancer\'s IP is a VIP served by many GFEs at once.','a'],
+['VLAN attachment','also "interconnect attachment"','The logical connection over an Interconnect: one 802.1Q tag, one BGP session, one VPC/region.','t'],
+['VM','Virtual Machine','A computer simulated in software on a physical host. In GCP, a Compute Engine instance.','a'],
+['VPC','Virtual Private Cloud','Your own private network inside Google Cloud. Global, with regional subnets, one route table and firewall rules. It exists as configuration, not hardware.','a'],
+['VPN','Virtual Private Network','A private link built by encrypting traffic and tunnelling it across the public Internet.','a'],
+['WAF','Web Application Firewall','Inspects web requests for attacks such as SQL injection. Cloud Armor does this at Google\'s edge.','a'],
+['WAN','Wide Area Network','A network spanning cities or continents. Google\'s backbone is one.','a'],
+['XPN','Cross-project networking','Shared VPC\'s original internal name. It survives in role names like compute.xpnAdmin.','a']];
+function renderGloss(){const q=($('#gq').value||'').trim().toLowerCase(),
+  rows=GLOSS.slice().sort((a,b)=>a[0].localeCompare(b[0],'en',{sensitivity:'base'})).filter(g=>!q||g.slice(0,3).join(' ').toLowerCase().includes(q));
+  let o='',L='';const has=new Set();
+  rows.forEach(([t,x,d,k])=>{const l=/[0-9]/.test(t[0])?'#':t[0].toUpperCase();has.add(l);
+    if(l!==L){L=l;o+=`<div class="L" id="g-${l==='#'?'0':l}">${l}</div>`;}
+    o+=`<div class="g ${k}"><dt><b>${esc(t)}</b>${x?`<span>${esc(x)}</span>`:''}</dt>${d?`<dd>${esc(d)}</dd>`:''}</div>`;});
+  $('#gl').innerHTML=o||'<p class="gloss-empty">No term matches. Try a shorter word.</p>';
+  $('#gaz').innerHTML=['#',...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map(l=>`<a href="#g-${l==='#'?'0':l}" class="${has.has(l)?'':'off'}" data-l="${l}">${l}</a>`).join('');}
+$('#gq').oninput=renderGloss;
+$('#gaz').onclick=e=>{const a=e.target.closest('a');if(!a)return;e.preventDefault();const t=document.getElementById(a.getAttribute('href').slice(1));if(t)t.scrollIntoView({behavior:'smooth',block:'start'});};
+$('#bGloss').onclick=()=>{$('#glossary').scrollIntoView({behavior:'smooth'});setTimeout(()=>$('#gq').focus({preventScroll:true}),400);};
+renderGloss();
 boot();
 </script>
 </body>
